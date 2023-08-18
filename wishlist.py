@@ -4,6 +4,12 @@ from qsatlib import Bitstring, DeterministicBooleanCircuit, NondeterministicBool
 from qsatlib import STConnAlgorithm
 from qsatlib import RubiksCube2x2x2, RubiksCube2x2x2Move
 
+
+# 0. by fedroidus + elexunix
+n = Integer(num_bits=10)
+k = Integer(num_bits=10)
+Forall(n, Exists(k, n == k + k))  # False
+
 # 1. by elexunix
 g = UndirectedGraph(2)
 h = UndirectedGraph(2)
