@@ -2,111 +2,40 @@ from enum import Enum
 from typing import Sequence
 
 
-# n = Integer(num_bits=4)
-# k = Integer(num_bits=4)
-
-# Forall(n, Exists(k, n == k + k))
-
-#            q = Forall x1..10: (x2 => x1 AND x3 => x2 AND ...) =>                                    Forall(...)
-#                    Exists x11..x20: (x12 => x11 AND x13 => x12 AND ...) AND                         Exists(...)
-#                    (Exists x21..x30:                                                                k + k
-#                       (x22 => x21 AND x23 => x22 AND ...) AND                                       k + k
-#                       (x21 == (x11 AND x11) AND x22 == (x11 AND x12 OR x12 AND x11) AND ...) AND    k + k
-#
-#                       (x1 == x21 AND x2 == x22 AND ...)                                             n == k + k
-#                    )
-
-
 class QuantifierType(Enum):
     EXISTS = '∃'
     FORALL = '∀'
 
 
-class UnaryOperationType(Enum):
-    ID = ''
+class OperationType(Enum):
     NOT = '¬'
-
-
-class BinaryOperationType(Enum):
     AND = '∧'
     OR = '∨'
     XOR = '⊕'
     EQ = '='
 
 
-class AbstractNode:
+class Formula:
     def __invert__(self):
-        return UnaryOperationNode(UnaryOperationType.NOT, self)
+        return OperationNode(OperationType.NOT, self)
 
     def __and__(self, other):
-        return BinaryOperationNode(BinaryOperationType.AND, self, other)
+        return OperationNode(OperationType.AND, self, other)
 
     def __or__(self, other):
-        return BinaryOperationNode(BinaryOperationType.OR, self, other)
+        return OperationNode(OperationType.OR, self, other)
 
     def __xor__(self, other):
-        return BinaryOperationNode(BinaryOperationType.XOR, self, other)
+        return OperationNode(OperationType.XOR, self, other)
 
     def __eq__(self, other):
-        return BinaryOperationNode(BinaryOperationType.EQ, self, other)
-
-
-def implies(left: AbstractNode, right: AbstractNode):
-    return ~left | right
-
-
-def conj(seq: Sequence[AbstractNode]):
-    if not seq:
-        return ConstantNode(True)
-    if len(seq) == 1:
-        return seq[0]
-    return seq[0] & conj(seq[1:])
-
-
-def disj(seq: Sequence[AbstractNode]):
-    if not seq:
-        return ConstantNode(False)
-    if len(seq) == 1:
-        return seq[0]
-    return seq[0] | disj(seq[1:])
-
-
-def eq(seq: Sequence[AbstractNode]):
-    if len(seq) <= 1:
-        return ConstantNode(True)
-    if len(seq) == 2:
-        return seq[0] == seq[1]
-    return (seq[0] == seq[1]) & eq(seq[1:])
-
-
-# def eq(left: AbstractNode, right: AbstractNode):
-#     return eq([left, right])
-
-
-class Datatype:
-    def __init__(self, num_bits):
-        self.bits = [BitNode() for _ in range(num_bits)]
-
-    def is_valid(self):
-        return ConstantNode(True)
-
-
-def exists(variable: Datatype, condition: AbstractNode):
-    return QuantifierNode(QuantifierType.EXISTS, variable.bits, variable.is_valid() & condition)
-
-
-def forall(variable: Datatype, condition: AbstractNode):
-    return QuantifierNode(QuantifierType.FORALL, variable.bits, implies(variable.is_valid(), condition))
-
-
-# just to make sure that you suck
-# QuantifierTypeType = class
+        return OperationNode(OperationType.EQ, self, other)
 
 
 counter = 0
 
 
-class BitNode(AbstractNode):
+class BitNode(Formula):
     def __init__(self):
         super().__init__()
         global counter
@@ -117,7 +46,7 @@ class BitNode(AbstractNode):
         return f'x{self.id}'
 
 
-class ConstantNode(AbstractNode):
+class ConstantNode(Formula):
     def __init__(self, value: bool):
         super().__init__()
         self.value = value
@@ -126,8 +55,8 @@ class ConstantNode(AbstractNode):
         return str(int(self.value))
 
 
-class QuantifierNode(AbstractNode):
-    def __init__(self, quantifier: QuantifierType, variables: Sequence[BitNode], child: AbstractNode):
+class QuantifierNode(Formula):
+    def __init__(self, quantifier: QuantifierType, variables: Sequence[BitNode], child: Formula):
         super().__init__()
         self.quantifier = quantifier
         self.variables = variables
@@ -137,96 +66,165 @@ class QuantifierNode(AbstractNode):
         return f'{self.quantifier.value}{",".join(map(str, self.variables))} {self.child}'
 
 
-class UnaryOperationNode(AbstractNode):
-    def __init__(self, op_type: UnaryOperationType, child: AbstractNode):
+class OperationNode(Formula):
+    def __init__(self, op_type: OperationType, *children: Formula):
         super().__init__()
         self.op_type = op_type
-        self.child = child
+        self.children = children
 
     def __str__(self):
-        return f'{self.op_type.value}{self.child}'
+        if self.op_type == OperationType.NOT:
+            return f'{self.op_type.value}{self.children[0]}'
+        if len(self.children) == 1:
+            return str(self.children[0])
+        return '(' + f' {self.op_type.value} '.join(map(str, self.children)) + ')'
 
 
-class BinaryOperationNode(AbstractNode):
-    def __init__(self, op_type: BinaryOperationType, child1: AbstractNode, child2: AbstractNode):
-        super().__init__()
-        self.op_type = op_type
-        self.child1 = child1
-        self.child2 = child2
-
-    def __str__(self):
-        return f'({self.child1} {self.op_type.value} {self.child2})'
+def implies(left: Formula, right: Formula):
+    return ~left | right
 
 
-class UnaryUnsigned(Datatype):
-    def __init__(self, num_bits):
-        super().__init__(num_bits)
+def conj(*formulas: Formula):
+    if not formulas:
+        return ConstantNode(True)
+    return OperationNode(OperationType.AND, *formulas)
 
-    def get_bit(self, k):
-        return self.bits[k] if 0 <= k < len(self.bits) else ConstantNode(False)
 
-    @staticmethod
-    def a_plus_b_is_c(a, b, c):
+def disj(*formulas: Formula):
+    if not formulas:
+        return ConstantNode(False)
+    return OperationNode(OperationType.OR, *formulas)
+
+
+def xor(*formulas: Formula):
+    if not formulas:
+        return ConstantNode(False)
+    return OperationNode(OperationType.XOR, *formulas)
+
+
+def eq(*formulas: Formula):
+    return conj(*[formulas[i] == formulas[0] for i in range(1, len(formulas))])
+
+
+class Variable:
+    def __init__(self, bits: Sequence[BitNode], auxiliary=False):
+        self.bits = bits
+        self.constraints = []
+        self.auxiliary = auxiliary
+
+    def __len__(self):
+        return len(self.bits)
+
+    def __getitem__(self, item):
+        return self.bits[item] if 0 <= item < len(self.bits) else ConstantNode(False)
+
+    def constraints_formula(self):
+        return conj(*self.constraints)
+
+
+def exist(variables: Sequence[Variable], formula: Formula):
+    return QuantifierNode(QuantifierType.EXISTS, sum([variable.bits for variable in variables], []),
+                          conj(*[variable.constraints_formula() for variable in variables], formula))
+
+
+def forall(variables: Sequence[Variable], formula: Formula):
+    return QuantifierNode(QuantifierType.FORALL, sum([variable.bits for variable in variables], []),
+                          implies(conj(*[variable.constraints_formula() for variable in variables]), formula))
+
+
+def wrap_auxiliary(variables: Sequence[Variable], formula: Formula):
+    auxiliary_variables = [variable for variable in variables if variable.auxiliary]
+    return exist(auxiliary_variables, formula) if auxiliary_variables else formula
+
+
+class UIntUnary(Variable):
+    def __init__(self, num_bits, auxiliary=False):
+        super().__init__(bits=[BitNode() for _ in range(num_bits)],
+                         auxiliary=auxiliary)
+        for i in range(1, num_bits):
+            self.constraints.append(implies(self[i], self[i - 1]))
+
+    def __add__(self, other):
+        result = UIntUnary(num_bits=len(self) + len(other), auxiliary=True)
         conditions = []
-        for k in range(1, len(c.bits)):
-            # c.(k-1) <=> b.(k-1) or (a.0 and b.(k-2)) or (a.1 and b.(k-3)) or ... or (a.(k-2) and b.0) or a.(k-1)
-            conditions.append(eq([c.bits[k - 1], disj([b.get_bit(k - 1)] +
-                                                      [a.get_bit(i) & b.get_bit(k - 2 - i) for i in range(k - 1)] +
-                                                      [a.get_bit(k - 1)])]))
-        return conj(conditions)
-
-    # def __add__(self, other):
-    #     tmp = UnaryUnsigned(len(self.bits) + len(other.bits))
-    #     return exists(tmp, self.a_plus_b_is_c(self, other, tmp))
-
-    # def __eq__(self, other):
-    #     conditions = []
-    #     for k in range(max(len(self.bits), len(other.bits))):
-    #         conditions.append(eq([self._get_bit(k), other._get_bit(k)]))
-    #     return conj(conditions)
-
-    def is_valid(self):
-        return conj([implies(self.bits[i], self.bits[i - 1]) for i in range(1, len(self.bits))])
-
-    def __str__(self):
-        result = '[unary number'
-        for k in range(len(self.bits)):
-            result += f' {self.bits[k]}'
-        result += ']'
+        for i in range(len(self)):
+            for j in range(len(other)):
+                conditions.append(implies(self[i] & other[j], result[i + j + 1]))
+                conditions.append(implies(~self[i] & ~other[j], ~result[i + j]))
+        result.constraints.append(wrap_auxiliary([self, other], conj(*conditions)))
         return result
 
+    def __mul__(self, other):
+        result = UIntUnary(num_bits=len(self) * len(other), auxiliary=True)
+        conditions = []
+        for i in range(len(self)):
+            for j in range(len(other)):
+                conditions.append(implies(self[i] & other[j], result[i * j + i + j]))
+                conditions.append(implies(~self[i] & ~other[j], ~result[i * j]))
+        result.constraints.append(wrap_auxiliary([self, other], conj(*conditions)))
+        return result
 
-class BinaryUnsigned(Datatype):  # overflow is handled in C fashion
-    def __init__(self, num_bits)
-        super().__init__(num_bits)
+    def __eq__(self, other):
+        return wrap_auxiliary([self, other],
+                              conj(*[self[i] == other[i] for i in range(max(len(self), len(other)))]))
+
+    def __le__(self, other):
+        return wrap_auxiliary([self, other],
+                              conj(*[implies(other[i], self[i]) for i in range(max(len(self), len(other)))]))
+
+    def __ge__(self, other):
+        return other <= self
+
+
+class UIntBinary(Variable):
+    def __init__(self, num_bits, auxiliary=False):
+        super().__init__(bits=[BitNode() for _ in range(num_bits)],
+                         auxiliary=auxiliary)
 
     @staticmethod
     def _bit_sum_is(a, b, c, s0, s1):  # a + b + c == 2 * s1 + s0
-      conditions = []
-      for a_value in range(2):
-        for b_value in range(2):
-          for c_value in range(2):
-            conditions.append(implies(conj(a if a_value else ~a, b if b_value else ~b, c if c_value else ~c),
-                                      s0 if (a_value + b_value + c_value) % 2 == 1 else ~s0, s1 if a_valud + b_valud + c_valud >= 2 else ~s1))
-      return conj(conditions)
+        return conj(s0 == xor(a, b, c),
+                    s1 == disj(a & b, b & c, a & c))
 
-    @staticmethod
-    def a_plus_b_is_c(a, b, r):
-        assert len(a) == len(b) == len(c)
-        n = len(a)
-        carry_bits = [BitNode() for _ in range(n)]
-        #    c1 c2 c3 c4  # c0 = 0
-        # a0 a1 a2 a3 a4
-        # b0 b1 b2 b3 b4
-        # r0 r1 r2 r3 r4
-        conditions = [~carry_bits[0]]
+    def __add__(self, other):
+        assert len(self) == len(other)
+        n = len(self)
+        result = UIntBinary(num_bits=n, auxiliary=True)
+        carry = UIntBinary(num_bits=n + 1, auxiliary=True)
+        conditions = [~carry[0]]
         for k in range(n):
-          conditions.append(bit_sum_is(a.bits[k], b.bits[k], carry_bits[k], r.bits[k], carry_bits[k + 1] if k < n - 1 else ConstantNode(False)))
-        return conj(conditions)
+            conditions.append(UIntBinary._bit_sum_is(self[k], other[k], carry[k], result[k], carry[k + 1]))
+        result.constraints.append(wrap_auxiliary([self, other, carry], conj(*conditions)))
+        return result
 
+    def __mul__(self, other):
+        assert len(self) == len(other)
+        n = len(self)
+        conditions = []
+        r = [UIntBinary(num_bits=n, auxiliary=True) for _ in range(n)]
+        for i in range(n):
+            for j in range(i):
+                conditions.append(~r[i][j])
+            for j in range(i, n):
+                conditions.append(r[i][j] == (self[j - i] & other[i]))
+        result = r[0]
+        for i in range(1, n):
+            result = result + r[i]  # Really nice!
+        result.constraints.append(wrap_auxiliary([self, other] + r, conj(*conditions)))
+        return result
 
-if __name__ == '__main__':
-    n = UnaryUnsigned(num_bits=4)
-    m = UnaryUnsigned(num_bits=4)
-    res = forall(n, exists(m, UnaryUnsigned.a_plus_b_is_c(m, m, n)))
-    print(res)
+    def __eq__(self, other):
+        assert len(self) == len(other)
+        return wrap_auxiliary([self, other],
+                              conj(*[self[i] == other[i] for i in range(len(self))]))
+
+    def __le__(self, other):
+        assert len(self) == len(other)
+        options = [self == other]
+        for i in range(len(self)):
+            options.append(conj(~self[i], other[i],
+                                *[self[j] == other[j] for j in range(i + 1, len(self))]))
+        return wrap_auxiliary([self, other], disj(*options))
+
+    def __ge__(self, other):
+        return other <= self
