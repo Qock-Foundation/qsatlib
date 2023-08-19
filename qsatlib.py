@@ -196,6 +196,35 @@ class UnaryUnsigned(Datatype):
         return result
 
 
+class BinaryUnsigned(Datatype):  # overflow is handled in C fashion
+    def __init__(self, num_bits)
+        super().__init__(num_bits)
+
+    @staticmethod
+    def _bit_sum_is(a, b, c, s0, s1):  # a + b + c == 2 * s1 + s0
+      conditions = []
+      for a_value in range(2):
+        for b_value in range(2):
+          for c_value in range(2):
+            conditions.append(implies(conj(a if a_value else ~a, b if b_value else ~b, c if c_value else ~c),
+                                      s0 if (a_value + b_value + c_value) % 2 == 1 else ~s0, s1 if a_valud + b_valud + c_valud >= 2 else ~s1))
+      return conj(conditions)
+
+    @staticmethod
+    def a_plus_b_is_c(a, b, r):
+        assert len(a) == len(b) == len(c)
+        n = len(a)
+        carry_bits = [BitNode() for _ in range(n)]
+        #    c1 c2 c3 c4  # c0 = 0
+        # a0 a1 a2 a3 a4
+        # b0 b1 b2 b3 b4
+        # r0 r1 r2 r3 r4
+        conditions = [~carry_bits[0]]
+        for k in range(n):
+          conditions.append(bit_sum_is(a.bits[k], b.bits[k], carry_bits[k], r.bits[k], carry_bits[k + 1] if k < n - 1 else ConstantNode(False)))
+        return conj(conditions)
+
+
 if __name__ == '__main__':
     n = UnaryUnsigned(num_bits=4)
     m = UnaryUnsigned(num_bits=4)
