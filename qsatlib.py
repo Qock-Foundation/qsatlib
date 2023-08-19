@@ -169,10 +169,23 @@ class UnaryUnsigned(Datatype):
     def a_plus_b_is_c(a, b, c):
         conditions = []
         for k in range(1, len(c.bits)):
-            # c.(k-1) <=> b.(k-1) or (a.0 and b.(k-2)) or (a.1 and b.(k-3)) or ... or (a.(k-2) and b.0) or a.(k-1)
+            # c >= k <=> b >= k or (a >= 1 and b >= k - 1) or (a >= 2 and b >= k - 2) or ... or a >= k
+            # # c[k-1] <=> b[k-1] or (a[0] and b[k-2]) or (a[1] and b[k-3]) or ... or (a[k-2] and b[0]) or a[k-1]
             conditions.append(eq([c.bits[k - 1], disj([b.get_bit(k - 1)] +
                                                       [a.get_bit(i) & b.get_bit(k - 2 - i) for i in range(k - 1)] +
                                                       [a.get_bit(k - 1)])]))
+        return conj(conditions)
+
+    @staticmethod
+    def a_times_b_is_c(a, b, c):
+        conditions = []
+        for k in range(1, len(c.bits)):
+            # c >= k <=> (a >= 1 and b >= k) or (a >= 2 and b >= k // 2) or ... or (a >= k and b >= 1)
+            # c[k - 1] <=> (a[0] and b[k - 1]) or (a[1] and b[k // 2 - 1]) or ... or (a[k - 1] and b[0])
+            options_k = [disj([a.bits[i] & b.bits[k - 1 - i] for i in range(k)])]
+            for a_val in range(1, k + 1):
+                options_k.append(a.bits[a_val - 1] & b.bits[k // a_val - 1])
+            conditions.append(eq([c.bits[k - 1], disj(condition_k)]))
         return conj(conditions)
 
     # def __add__(self, other):
@@ -212,6 +225,7 @@ class BinaryUnsigned(Datatype):  # overflow is handled in C fashion
 
     @staticmethod
     def a_plus_b_is_c(a, b, r):
+        # ASSERT IS DEPRECATED IN FAVOR OF SUCK_ERROR
         assert len(a) == len(b) == len(c)
         n = len(a)
         carry_bits = [BitNode() for _ in range(n)]
@@ -222,6 +236,34 @@ class BinaryUnsigned(Datatype):  # overflow is handled in C fashion
         conditions = [~carry_bits[0]]
         for k in range(n):
           conditions.append(bit_sum_is(a.bits[k], b.bits[k], carry_bits[k], r.bits[k], carry_bits[k + 1] if k < n - 1 else ConstantNode(False)))
+        return conj(conditions)
+
+    @staticmethod
+    def a_times_b_is_c(a, b, c):
+        # ASSERT IS DEPRECATED IN FAVOR OF SUCK_ERROR
+        assert len(a.bits) == len(b.bits) == len(c.bits)
+        n = len(a.bits)
+        # a0  a1  a2  a3
+        # b0  b1  b2  b3
+        # ---------------                         prefix sums:
+        # r00 r01 r02 r03  = [b0 * a0 a1 a2 a3]   s00 s01 s02 s03
+        #   0 r11 r12 r13  = 0 [b1 * a0 a1 a2]    s10 s11 s12 s13
+        #   0   0 r22 r23  = 0 0 [b2 * a0 a1]     s20 s21 s22 s23
+        #   0   0   0 r33  = 0 0 0 [b3 * a0]      s30 s31 s32 s33
+        # ---------------                         ---------------
+        #                                         c0  c1  c2  c3 [c4 etc are dropped]
+        conditions = []
+        r = [[BitNode() for j in range(n)] for i in range(n)]
+        for i in range(n):
+          for j in range(n):
+            conditions.append(~r[i][j])
+          for j in range(i, n):
+            conditions.append(eq(r[i][j], conj(b.bits[i], a.bits[j - i])))
+        s = r[0] + [[BitNode() for j in range(n)] for i in range(1, n)]
+        for i in range(1, n):
+          conditions.append(a_plus_b_is_c(s[i - 1], r[i], s[i]))
+        for j in range(n):
+          conditions.append(eq(s[-1][j], c))
         return conj(conditions)
 
 
