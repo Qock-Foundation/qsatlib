@@ -81,10 +81,9 @@ def test_add_commutativity_binary():
 
 
 def test_m2_equals_n_binary():
-    n = UIntBinary(num_bits=2)
-    m = UIntBinary(num_bits=2)
+    n = UIntBinary(num_bits=3)
+    m = UIntBinary(num_bits=3)
     formula = forall([n], exist([m], n == m * m))
-    print(formula)
     assert not BruteForceSolver().solve(formula)
 
 

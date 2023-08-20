@@ -107,10 +107,10 @@ def eq(*formulas: Formula):
 
 
 class Variable:
-    def __init__(self, bits: Sequence[BitNode], auxiliary=False):
+    def __init__(self, bits: Sequence[BitNode]):
         self.bits = bits
-        self.constraints = []
-        self.auxiliary = auxiliary
+        self.constraint = ConstantNode(True)
+        self.auxiliary = False
 
     def __len__(self):
         return len(self.bits)
@@ -118,113 +118,143 @@ class Variable:
     def __getitem__(self, item):
         return self.bits[item] if 0 <= item < len(self.bits) else ConstantNode(False)
 
-    def constraints_formula(self):
-        return conj(*self.constraints)
-
 
 def exist(variables: Sequence[Variable], formula: Formula):
     return QuantifierNode(QuantifierType.EXISTS, sum([variable.bits for variable in variables], []),
-                          conj(*[variable.constraints_formula() for variable in variables], formula))
+                          conj(*[variable.constraint for variable in variables], formula))
 
 
 def forall(variables: Sequence[Variable], formula: Formula):
     return QuantifierNode(QuantifierType.FORALL, sum([variable.bits for variable in variables], []),
-                          implies(conj(*[variable.constraints_formula() for variable in variables]), formula))
+                          implies(conj(*[variable.constraint for variable in variables]), formula))
 
 
-def wrap_auxiliary(variables: Sequence[Variable], formula: Formula):
-    auxiliary_variables = [variable for variable in variables if variable.auxiliary]
-    return exist(auxiliary_variables, formula) if auxiliary_variables else formula
+# def wrap_auxiliary(variables: Sequence[Variable], formula: Formula):
+#     auxiliary_variables = [variable for variable in variables if variable.auxiliary]
+#     return exist(auxiliary_variables, formula) if auxiliary_variables else formula
+
+
+def operation(func):
+    def inner(*variables: Variable):
+        aux_vars = [variable for variable in variables if variable.auxiliary]
+        result = func(*variables)
+        result.auxiliary = True
+        if aux_vars:
+            result.constraint = exist(aux_vars, result.constraint)
+        return result
+
+    return inner
+
+
+def relation(func):
+    def inner(*variables: Variable):
+        aux_vars = [variable for variable in variables if variable.auxiliary]
+        formula = func(*variables)
+        if aux_vars:
+            formula = exist(aux_vars, formula)
+        return formula
+
+    return inner
 
 
 class UIntUnary(Variable):
-    def __init__(self, num_bits, auxiliary=False):
-        super().__init__(bits=[BitNode() for _ in range(num_bits)],
-                         auxiliary=auxiliary)
-        for i in range(1, num_bits):
-            self.constraints.append(implies(self[i], self[i - 1]))
+    def __init__(self, num_bits):
+        super().__init__([BitNode() for _ in range(num_bits)])
+        self.constraint = conj(*[implies(self[i], self[i - 1]) for i in range(1, num_bits)])
 
+    @operation
     def __add__(self, other):
-        result = UIntUnary(num_bits=len(self) + len(other), auxiliary=True)
+        result = UIntUnary(num_bits=len(self) + len(other))
         conditions = []
         for i in range(len(self)):
             for j in range(len(other)):
                 conditions.append(implies(self[i] & other[j], result[i + j + 1]))
                 conditions.append(implies(~self[i] & ~other[j], ~result[i + j]))
-        result.constraints.append(wrap_auxiliary([self, other], conj(*conditions)))
+        result.constraint = conj(*conditions)
         return result
 
+    @operation
     def __mul__(self, other):
-        result = UIntUnary(num_bits=len(self) * len(other), auxiliary=True)
+        result = UIntUnary(num_bits=len(self) * len(other))
         conditions = []
         for i in range(len(self)):
             for j in range(len(other)):
                 conditions.append(implies(self[i] & other[j], result[i * j + i + j]))
                 conditions.append(implies(~self[i] & ~other[j], ~result[i * j]))
-        result.constraints.append(wrap_auxiliary([self, other], conj(*conditions)))
+        result.constraint = conj(*conditions)
         return result
 
+    @relation
     def __eq__(self, other):
-        return wrap_auxiliary([self, other],
-                              conj(*[self[i] == other[i] for i in range(max(len(self), len(other)))]))
+        return conj(*[self[i] == other[i] for i in range(max(len(self), len(other)))])
 
+    @relation
     def __le__(self, other):
-        return wrap_auxiliary([self, other],
-                              conj(*[implies(other[i], self[i]) for i in range(max(len(self), len(other)))]))
+        return conj(*[implies(other[i], self[i]) for i in range(max(len(self), len(other)))])
 
+    @relation
     def __ge__(self, other):
-        return other <= self
+        return conj(*[implies(self[i], other[i]) for i in range(max(len(self), len(other)))])
 
 
 class UIntBinary(Variable):
-    def __init__(self, num_bits, auxiliary=False):
-        super().__init__(bits=[BitNode() for _ in range(num_bits)],
-                         auxiliary=auxiliary)
+    def __init__(self, num_bits):
+        super().__init__([BitNode() for _ in range(num_bits)])
 
     @staticmethod
     def _bit_sum_is(a, b, c, s0, s1):  # a + b + c == 2 * s1 + s0
         return conj(s0 == xor(a, b, c),
                     s1 == disj(a & b, b & c, a & c))
 
+    @operation
     def __add__(self, other):
         assert len(self) == len(other)
         n = len(self)
-        result = UIntBinary(num_bits=n, auxiliary=True)
-        carry = UIntBinary(num_bits=n + 1, auxiliary=True)
+        result = UIntBinary(num_bits=n)
+        carry = UIntBinary(num_bits=n + 1)
         conditions = [~carry[0]]
         for k in range(n):
             conditions.append(UIntBinary._bit_sum_is(self[k], other[k], carry[k], result[k], carry[k + 1]))
-        result.constraints.append(wrap_auxiliary([self, other, carry], conj(*conditions)))
+        result.constraint = exist([carry], conj(*conditions))
         return result
 
+    @operation
     def __mul__(self, other):
         assert len(self) == len(other)
         n = len(self)
         conditions = []
-        r = [UIntBinary(num_bits=n, auxiliary=True) for _ in range(n)]
+        r = [UIntBinary(num_bits=n) for _ in range(n)]
         for i in range(n):
             for j in range(i):
                 conditions.append(~r[i][j])
             for j in range(i, n):
                 conditions.append(r[i][j] == (self[j - i] & other[i]))
-        result = r[0]
+        s = r[0]
         for i in range(1, n):
-            result = result + r[i]  # Really nice!
-        result.constraints.append(wrap_auxiliary([self, other] + r, conj(*conditions)))
+            s = s + r[i]  # Concise
+        result = UIntBinary(num_bits=n)
+        result.constraint = exist(r, conj(*conditions, result == s))
         return result
 
+    @relation
     def __eq__(self, other):
         assert len(self) == len(other)
-        return wrap_auxiliary([self, other],
-                              conj(*[self[i] == other[i] for i in range(len(self))]))
+        return conj(*[self[i] == other[i] for i in range(len(self))])
 
+    @relation
     def __le__(self, other):
         assert len(self) == len(other)
         options = [self == other]
         for i in range(len(self)):
             options.append(conj(~self[i], other[i],
                                 *[self[j] == other[j] for j in range(i + 1, len(self))]))
-        return wrap_auxiliary([self, other], disj(*options))
+        return disj(*options)
 
+    @relation
     def __ge__(self, other):
-        return other <= self
+        assert len(self) == len(other)
+        options = [self == other]
+        for i in range(len(self)):
+            options.append(conj(self[i], ~other[i],
+                                *[self[j] == other[j] for j in range(i + 1, len(self))]))
+        return disj(*options)
