@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Sequence
+from typing import Sequence, Any
 
 
 class QuantifierType(Enum):
@@ -83,24 +83,20 @@ class OperationNode(Formula):
 def implies(left: Formula, right: Formula):
     return ~left | right
 
-
 def conj(*formulas: Formula):
     if not formulas:
         return ConstantNode(True)
     return OperationNode(OperationType.AND, *formulas)
-
 
 def disj(*formulas: Formula):
     if not formulas:
         return ConstantNode(False)
     return OperationNode(OperationType.OR, *formulas)
 
-
 def xor(*formulas: Formula):
     if not formulas:
         return ConstantNode(False)
     return OperationNode(OperationType.XOR, *formulas)
-
 
 def eq(*formulas: Formula):
     return conj(*[formulas[i] == formulas[0] for i in range(1, len(formulas))])
@@ -119,14 +115,27 @@ class Variable:
         return self.bits[item] if 0 <= item < len(self.bits) else ConstantNode(False)
 
 
-def exist(variables: Sequence[Variable], formula: Formula):
+def exist_seq(variables: Sequence[Variable], formula: Formula):
     return QuantifierNode(QuantifierType.EXISTS, sum([variable.bits for variable in variables], []),
                           conj(*[variable.constraint for variable in variables], formula))
 
+def exist(*variables_and_formula):
+    if len(variables_and_formula) == 2 and isinstance(variables_and_formula[0], list):
+        return exist_seq(variables_and_formula[0], variables_and_formula[1])
+    else:
+        return exist_seq(list(variables_and_formula[:-1]), variables_and_formula[-1])
 
-def forall(variables: Sequence[Variable], formula: Formula):
+exists = exist
+
+def forall_seq(variables: Sequence[Variable], formula: Formula):
     return QuantifierNode(QuantifierType.FORALL, sum([variable.bits for variable in variables], []),
                           implies(conj(*[variable.constraint for variable in variables]), formula))
+
+def forall(*variables_and_formula):
+    if len(variables_and_formula) == 2 and isinstance(variables_and_formula[0], list):
+        return forall_seq(variables_and_formula[0], variables_and_formula[1])
+    else:
+        return forall_seq(list(variables_and_formula[:-1]), variables_and_formula[-1])
 
 
 # def wrap_auxiliary(variables: Sequence[Variable], formula: Formula):
@@ -215,7 +224,7 @@ class UIntBinary(Variable):
         conditions = [~carry[0]]
         for k in range(n):
             conditions.append(UIntBinary._bit_sum_is(self[k], other[k], carry[k], result[k], carry[k + 1]))
-        result.constraint = exist([carry], conj(*conditions))
+        result.constraint = exist(carry, conj(*conditions))
         return result
 
     @operation
