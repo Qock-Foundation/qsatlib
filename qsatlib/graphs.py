@@ -36,3 +36,11 @@ class DirectedGraph(Variable):
     @relation
     def has_edge(self, i, j):
         return self[i][j]
+
+    @relation
+    def __eq__(self, other):
+        return conj(*[self[i][j] == other[i][j] for j in range(self.num_vertices) for i in range(self.num_vertices)])
+
+    @relation
+    def __ne__(self, other):
+        return disj(*[self[i][j] != other[i][j] for j in range(self.num_vertices) for i in range(self.num_vertices)])

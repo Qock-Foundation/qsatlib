@@ -31,6 +31,9 @@ class Formula:
     def __eq__(self, other):
         return OperationNode(OperationType.EQ, self, other)
 
+    def __ne__(self, other):
+        return ~(self == other)
+
 
 counter = 0
 
@@ -117,6 +120,11 @@ class Variable:
 
     def __getitem__(self, item):
         return self.bits[item] if 0 <= item < len(self.bits) else ConstantNode(False)
+
+    # because default __ne__ (!__eq__) is written as boolean not, which is not correct, the following code should be used:
+    #@relation
+    #def __ne__(self, other):
+    #    return ~(self == other)
 
 
 def exist(*variables_and_formula):
