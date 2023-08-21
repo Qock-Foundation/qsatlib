@@ -6,26 +6,31 @@ class UIntUnary(Variable):
         super().__init__([BitNode() for _ in range(num_bits)])
         self.constraint = conj(*[implies(self[i], self[i - 1]) for i in range(1, num_bits)])
 
+    def __getitem__(self, item):
+        if 0 <= item < len(self.bits):
+            return self.bits[item]
+        return ConstantNode(item < 0)
+
     @operation
     def __add__(self, other):
         result = UIntUnary(num_bits=len(self) + len(other))
         conditions = []
-        for i in range(len(self)):
-            for j in range(len(other)):
+        for i in range(-1, len(self) + 1):
+            for j in range(-1, len(other) + 1):
                 conditions.append(implies(self[i] & other[j], result[i + j + 1]))
                 conditions.append(implies(~self[i] & ~other[j], ~result[i + j]))
-        result.constraint = conj(*conditions)
+        result.constraint &= conj(*conditions)
         return result
 
     @operation
     def __mul__(self, other):
         result = UIntUnary(num_bits=len(self) * len(other))
         conditions = []
-        for i in range(len(self)):
-            for j in range(len(other)):
+        for i in range(-1, len(self) + 1):
+            for j in range(-1, len(other) + 1):
                 conditions.append(implies(self[i] & other[j], result[i * j + i + j]))
                 conditions.append(implies(~self[i] & ~other[j], ~result[i * j]))
-        result.constraint = conj(*conditions)
+        result.constraint &= conj(*conditions)
         return result
 
     @relation
@@ -119,6 +124,10 @@ class UIntBinary(Variable):
     def __eq__(self, other):
         assert len(self) == len(other)
         return conj(*[self[i] == other[i] for i in range(len(self))])
+
+    @relation
+    def __ne__(self, other):
+        return ~(self == other)
 
     @relation
     def __le__(self, other):

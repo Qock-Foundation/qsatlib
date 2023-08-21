@@ -2,14 +2,14 @@ from qsatlib.qsatlib import *
 
 
 class DirectedGraph(Variable):
-    def __getitem__(self, i):
-        return self.bits[i * self.num_vertices:(i + 1) * self.num_vertices]
-
     def __init__(self, num_vertices):
         self.num_vertices = num_vertices
         num_bits = self.num_vertices * self.num_vertices
         super().__init__([BitNode() for _ in range(num_bits)])
         self.constraint = conj(*[~self[i][i] for i in range(num_vertices)])  # no self-loops
+
+    def __getitem__(self, i):
+        return self.bits[i * self.num_vertices:(i + 1) * self.num_vertices]
 
     @operation
     def __and__(self, other):  # graph intersection
@@ -19,7 +19,7 @@ class DirectedGraph(Variable):
         for i in range(self.num_vertices):
             for j in range(self.num_vertices):
                 conditions.append(intersection[i][j] == self[i][j] & other[i][j])
-        intersection.constraint = conj(intersection.constraint, *conditions)
+        intersection.constraint &= conj(*conditions)
         return intersection
 
     @operation
@@ -30,7 +30,7 @@ class DirectedGraph(Variable):
         for i in range(self.num_vertices):
             for j in range(self.num_vertices):
                 conditions.append(union[i][j] == self[i][j] | other[i][j])
-        union.constraint = conj(union.constraint, *conditions)
+        union.constraint &= conj(*conditions)
         return union
 
     @relation
@@ -39,13 +39,16 @@ class DirectedGraph(Variable):
 
     @relation
     def __eq__(self, other):
-        return conj(*[self[i][j] == other[i][j] for j in range(self.num_vertices) for i in range(self.num_vertices)])
+        return conj(*[self[i][j] == other[i][j]
+                      for j in range(self.num_vertices) for i in range(self.num_vertices)])
 
     @relation
     def __ne__(self, other):
-        return disj(*[self[i][j] != other[i][j] for j in range(self.num_vertices) for i in range(self.num_vertices)])
+        return ~(self == other)
+
 
 class UndirectedGraph(DirectedGraph):
     def __init__(self, num_vertices):
         super().__init__(num_vertices)
-        self.constraint = self.constraint & conj(*[eq(self[i][j], self[j][i]) for i in range(self.num_vertices) for j in range(i)])
+        self.constraint &= conj(*[self[i][j] == self[j][i]
+                                  for i in range(self.num_vertices) for j in range(i)])

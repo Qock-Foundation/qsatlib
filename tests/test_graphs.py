@@ -6,16 +6,16 @@ def test_digraph_equality():
     n = 2
     solver = BruteForceSolver()
 
+    # Uniqueness for ==
+    a = DirectedGraph(num_vertices=n)
+    b = DirectedGraph(num_vertices=n)
+    formula = forall(a, exist_unique(b, b == a))
+    assert solver.solve(formula)
+
     # Commutativity of ==
     a = DirectedGraph(num_vertices=n)
     b = DirectedGraph(num_vertices=n)
     formula = forall(a, b, implies(a == b, b == a))
-    assert solver.solve(formula)
-
-    # Commutativity of !=
-    a = DirectedGraph(num_vertices=n)
-    b = DirectedGraph(num_vertices=n)
-    formula = forall(a, b, implies(a != b, b != a))
     assert solver.solve(formula)
 
     # Transitivity of ==
@@ -25,6 +25,18 @@ def test_digraph_equality():
     formula = forall(a, b, c, implies((a == b) & (b == c), a == c))
     assert solver.solve(formula)
 
+    # Non-uniqueness for !=
+    a = DirectedGraph(num_vertices=n)
+    b = DirectedGraph(num_vertices=n)
+    formula = forall(a, exist_unique(b, b != a))
+    assert not solver.solve(formula)
+
+    # Commutativity of !=
+    a = DirectedGraph(num_vertices=n)
+    b = DirectedGraph(num_vertices=n)
+    formula = forall(a, b, implies(a != b, b != a))
+    assert solver.solve(formula)
+
     # Non-transitivity of !=
     a = DirectedGraph(num_vertices=n)
     b = DirectedGraph(num_vertices=n)
@@ -32,7 +44,7 @@ def test_digraph_equality():
     formula = forall(a, b, c, implies((a != b) & (b != c), a != c))
     assert not solver.solve(formula)
 
-    # Now together
+    # (a == b) & (b != c) => (a != c)
     a = DirectedGraph(num_vertices=n)
     b = DirectedGraph(num_vertices=n)
     c = DirectedGraph(num_vertices=n)
@@ -40,11 +52,11 @@ def test_digraph_equality():
     assert solver.solve(formula)
 
 
-def test_digraph_intersection():
+def test_digraph_set_operations():
     n = 2
     solver = BruteForceSolver()
 
-    # definition
+    # definition of intersection
     for i in range(n):
         for j in range(n):
             a = DirectedGraph(num_vertices=n)
@@ -52,25 +64,20 @@ def test_digraph_intersection():
             formula = forall(a, b, (a & b).has_edge(i, j) == a.has_edge(i, j) & b.has_edge(i, j))
             assert solver.solve(formula)
 
-    # commutativity
+    # commutativity of intersection
     a = DirectedGraph(num_vertices=n)
     b = DirectedGraph(num_vertices=n)
     formula = forall(a, b, (a & b) == (b & a))
     assert solver.solve(formula)
 
-    # associativity
+    # associativity of intersection
     a = DirectedGraph(num_vertices=n)
     b = DirectedGraph(num_vertices=n)
     c = DirectedGraph(num_vertices=n)
     formula = forall(a, b, c, ((a & b) & c) == (a & (b & c)))
     assert solver.solve(formula)
 
-
-def test_digraph_union():
-    n = 2
-    solver = BruteForceSolver()
-
-    # definition
+    # definition of union
     for i in range(n):
         for j in range(n):
             a = DirectedGraph(num_vertices=n)
@@ -78,23 +85,18 @@ def test_digraph_union():
             formula = forall(a, b, (a | b).has_edge(i, j) == a.has_edge(i, j) | b.has_edge(i, j))
             assert solver.solve(formula)
 
-    # commutativity
+    # commutativity of union
     a = DirectedGraph(num_vertices=n)
     b = DirectedGraph(num_vertices=n)
     formula = forall(a, b, (a | b) == (b | a))
     assert solver.solve(formula)
 
-    # associativity
+    # associativity of union
     a = DirectedGraph(num_vertices=n)
     b = DirectedGraph(num_vertices=n)
     c = DirectedGraph(num_vertices=n)
     formula = forall(a, b, c, ((a | b) | c) == (a | (b | c)))
     assert solver.solve(formula)
-
-
-def test_digraph_intersection_and_union():
-    n = 2
-    solver = BruteForceSolver()
 
     # (a | b) & c == (a & c) | (b & c)
     a = DirectedGraph(num_vertices=n)
@@ -115,16 +117,16 @@ def test_graph_equality():
     n = 2
     solver = BruteForceSolver()
 
+    # Uniqueness for ==
+    a = UndirectedGraph(num_vertices=n)
+    b = UndirectedGraph(num_vertices=n)
+    formula = forall(a, exist_unique(b, b == a))
+    assert solver.solve(formula)
+
     # Commutativity of ==
     a = UndirectedGraph(num_vertices=n)
     b = UndirectedGraph(num_vertices=n)
     formula = forall(a, b, implies(a == b, b == a))
-    assert solver.solve(formula)
-
-    # Commutativity of !=
-    a = UndirectedGraph(num_vertices=n)
-    b = UndirectedGraph(num_vertices=n)
-    formula = forall(a, b, implies(a != b, b != a))
     assert solver.solve(formula)
 
     # Transitivity of ==
@@ -134,6 +136,18 @@ def test_graph_equality():
     formula = forall(a, b, c, implies((a == b) & (b == c), a == c))
     assert solver.solve(formula)
 
+    # Uniqueness for != (n = 2)
+    a = UndirectedGraph(num_vertices=n)
+    b = UndirectedGraph(num_vertices=n)
+    formula = forall(a, exist_unique(b, b != a))
+    assert solver.solve(formula)
+
+    # Commutativity of !=
+    a = UndirectedGraph(num_vertices=n)
+    b = UndirectedGraph(num_vertices=n)
+    formula = forall(a, b, implies(a != b, b != a))
+    assert solver.solve(formula)
+
     # Non-transitivity of !=
     a = UndirectedGraph(num_vertices=n)
     b = UndirectedGraph(num_vertices=n)
@@ -141,7 +155,7 @@ def test_graph_equality():
     formula = forall(a, b, c, implies((a != b) & (b != c), a != c))
     assert not solver.solve(formula)
 
-    # now together
+    # (a == b) & (b != c) => (a != c)
     a = UndirectedGraph(num_vertices=n)
     b = UndirectedGraph(num_vertices=n)
     c = UndirectedGraph(num_vertices=n)
@@ -149,11 +163,11 @@ def test_graph_equality():
     assert solver.solve(formula)
 
 
-def test_graph_intersection():
+def test_graph_set_operations():
     n = 2
     solver = BruteForceSolver()
 
-    # definition
+    # definition of intersection
     for i in range(n):
         for j in range(n):
             a = UndirectedGraph(num_vertices=n)
@@ -161,25 +175,20 @@ def test_graph_intersection():
             formula = forall(a, b, (a & b).has_edge(i, j) == a.has_edge(i, j) & b.has_edge(i, j))
             assert solver.solve(formula)
 
-    # commutativity
+    # commutativity of intersection
     a = UndirectedGraph(num_vertices=n)
     b = UndirectedGraph(num_vertices=n)
     formula = forall(a, b, (a & b) == (b & a))
     assert solver.solve(formula)
 
-    # associativity
+    # associativity of intersection
     a = UndirectedGraph(num_vertices=n)
     b = UndirectedGraph(num_vertices=n)
     c = UndirectedGraph(num_vertices=n)
     formula = forall(a, b, c, ((a & b) & c) == (a & (b & c)))
     assert solver.solve(formula)
 
-
-def test_graph_union():
-    n = 2
-    solver = BruteForceSolver()
-
-    # definition
+    # definition of union
     for i in range(n):
         for j in range(n):
             a = UndirectedGraph(num_vertices=n)
@@ -187,23 +196,18 @@ def test_graph_union():
             formula = forall(a, b, (a | b).has_edge(i, j) == a.has_edge(i, j) | b.has_edge(i, j))
             assert solver.solve(formula)
 
-    # commutativity
+    # commutativity of union
     a = UndirectedGraph(num_vertices=n)
     b = UndirectedGraph(num_vertices=n)
     formula = forall(a, b, (a | b) == (b | a))
     assert solver.solve(formula)
 
-    # associativity
+    # associativity of union
     a = UndirectedGraph(num_vertices=n)
     b = UndirectedGraph(num_vertices=n)
     c = UndirectedGraph(num_vertices=n)
     formula = forall(a, b, c, ((a | b) | c) == (a | (b | c)))
     assert solver.solve(formula)
-
-
-def test_graph_intersection_and_union():
-    n = 2
-    solver = BruteForceSolver()
 
     # (a | b) & c == (a & c) | (b & c)
     a = UndirectedGraph(num_vertices=n)
