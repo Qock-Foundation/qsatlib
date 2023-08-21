@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Sequence, Any
+from typing import Sequence
 
 
 class QuantifierType(Enum):
@@ -83,20 +83,24 @@ class OperationNode(Formula):
 def implies(left: Formula, right: Formula):
     return ~left | right
 
+
 def conj(*formulas: Formula):
     if not formulas:
         return ConstantNode(True)
     return OperationNode(OperationType.AND, *formulas)
+
 
 def disj(*formulas: Formula):
     if not formulas:
         return ConstantNode(False)
     return OperationNode(OperationType.OR, *formulas)
 
+
 def xor(*formulas: Formula):
     if not formulas:
         return ConstantNode(False)
     return OperationNode(OperationType.XOR, *formulas)
+
 
 def eq(*formulas: Formula):
     return conj(*[formulas[i] == formulas[0] for i in range(1, len(formulas))])
@@ -115,52 +119,40 @@ class Variable:
         return self.bits[item] if 0 <= item < len(self.bits) else ConstantNode(False)
 
 
-def exist_seq(variables: Sequence[Variable], formula: Formula):
+def exist(*variables_and_formula):
+    variables, formula = list(variables_and_formula[:-1]), variables_and_formula[-1]
     return QuantifierNode(QuantifierType.EXISTS, sum([variable.bits for variable in variables], []),
                           conj(*[variable.constraint for variable in variables], formula))
 
-def exist(*variables_and_formula):
-    if len(variables_and_formula) == 2 and isinstance(variables_and_formula[0], list):
-        return exist_seq(variables_and_formula[0], variables_and_formula[1])
-    else:
-        return exist_seq(list(variables_and_formula[:-1]), variables_and_formula[-1])
 
-exists = exist
-
-def forall_seq(variables: Sequence[Variable], formula: Formula):
+def forall(*variables_and_formula):
+    variables, formula = list(variables_and_formula[:-1]), variables_and_formula[-1]
     return QuantifierNode(QuantifierType.FORALL, sum([variable.bits for variable in variables], []),
                           implies(conj(*[variable.constraint for variable in variables]), formula))
 
-def forall(*variables_and_formula):
-    if len(variables_and_formula) == 2 and isinstance(variables_and_formula[0], list):
-        return forall_seq(variables_and_formula[0], variables_and_formula[1])
-    else:
-        return forall_seq(list(variables_and_formula[:-1]), variables_and_formula[-1])
 
-
-# def wrap_auxiliary(variables: Sequence[Variable], formula: Formula):
-#     auxiliary_variables = [variable for variable in variables if variable.auxiliary]
-#     return exist(auxiliary_variables, formula) if auxiliary_variables else formula
+def is_auxiliary(variable):
+    return isinstance(variable, Variable) and variable.auxiliary
 
 
 def operation(func):
-    def inner(*variables: Variable):
-        aux_vars = [variable for variable in variables if variable.auxiliary]
+    def inner(*variables):
+        aux_vars = [variable for variable in variables if is_auxiliary(variable)]
         result = func(*variables)
         result.auxiliary = True
         if aux_vars:
-            result.constraint = exist(aux_vars, result.constraint)
+            result.constraint = exist(*aux_vars, result.constraint)
         return result
 
     return inner
 
 
 def relation(func):
-    def inner(*variables: Variable):
-        aux_vars = [variable for variable in variables if variable.auxiliary]
+    def inner(*variables):
+        aux_vars = [variable for variable in variables if is_auxiliary(variable)]
         formula = func(*variables)
         if aux_vars:
-            formula = exist(aux_vars, formula)
+            formula = exist(*aux_vars, formula)
         return formula
 
     return inner

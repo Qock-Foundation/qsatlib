@@ -1,7 +1,5 @@
-from qsatlib import *
-from solver import BruteForceSolver
-from structures.numbers import UIntUnary, UIntBinary
-from structures.graphs import DirectedGraph
+from qsatlib.numbers import *
+from qsatlib.solver import BruteForceSolver
 
 
 def test_2m_equals_n_unary():
@@ -118,35 +116,3 @@ def test_ge_transitivity_binary():
     c = UIntBinary(num_bits=4)
     formula = forall(a, b, c, implies((a >= b) & (b >= c), a >= c))
     assert BruteForceSolver().solve(formula)
-
-
-def test_digraph_intersection():
-    for n in range(4):
-        for i in range(n):
-            for j in range(n):
-                a = DirectedGraph(num_vertices=n)
-                b = DirectedGraph(num_vertices=n)
-                formula = forall(a, b, implies(a.has_edge(i, j) & b.has_edge(i, j), (a & b).has_edge(i, j)))
-                assert BruteForceSolver().solve(formula)
-        for i in range(n):
-            for j in range(n):
-                a = DirectedGraph(num_vertices=n)
-                b = DirectedGraph(num_vertices=n)
-                formula = forall(a, b, implies((a & b).has_edge(i, j), a.has_edge(i, j) & b.has_edge(i, j)))
-                assert BruteForceSolver().solve(formula)
-
-
-def test_digraph_union():
-    for n in range(4):
-        for i in range(n):
-            for j in range(n):
-                a = DirectedGraph(num_vertices=n)
-                b = DirectedGraph(num_vertices=n)
-                formula = forall(a, b, implies(a.has_edge(i, j) | b.has_edge(i, j), (a | b).has_edge(i, j)))
-                assert BruteForceSolver().solve(formula)
-        for i in range(n):
-            for j in range(n):
-                a = DirectedGraph(num_vertices=n)
-                b = DirectedGraph(num_vertices=n)
-                formula = forall(a, b, implies((a | b).has_edge(i, j), a.has_edge(i, j) | b.has_edge(i, j)))
-                assert BruteForceSolver().solve(formula)

@@ -1,4 +1,4 @@
-from qsatlib import *
+from qsatlib.qsatlib import *
 
 
 class DirectedGraph(Variable):
@@ -18,8 +18,8 @@ class DirectedGraph(Variable):
         conditions = []
         for i in range(self.num_vertices):
             for j in range(self.num_vertices):
-                conditions.append(eq(intersection[i][j], self[i][j] & other[i][j]))
-        intersection.constraint = intersection.constraint & conditions
+                conditions.append(intersection[i][j] == self[i][j] & other[i][j])
+        intersection.constraint = conj(intersection.constraint, *conditions)
         return intersection
 
     @operation
@@ -29,9 +29,10 @@ class DirectedGraph(Variable):
         conditions = []
         for i in range(self.num_vertices):
             for j in range(self.num_vertices):
-                conditions.append(eq(union[i][j], self[i][j] | other[i][j]))
-        union.constraint = union.constraint & conditions
+                conditions.append(union[i][j] == self[i][j] | other[i][j])
+        union.constraint = conj(union.constraint, *conditions)
         return union
 
+    @relation
     def has_edge(self, i, j):
         return self[i][j]

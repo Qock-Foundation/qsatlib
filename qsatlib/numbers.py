@@ -1,4 +1,5 @@
-from qsatlib import *
+from qsatlib.qsatlib import *
+
 
 class UIntUnary(Variable):
     def __init__(self, num_bits):
@@ -76,7 +77,7 @@ class UIntBinary(Variable):
         for i in range(1, n):
             s = s + r[i]  # Concise
         result = UIntBinary(num_bits=n)
-        result.constraint = exist(r, conj(*conditions, result == s))
+        result.constraint = exist(*r, conj(*conditions, result == s))
         return result
 
     @relation
