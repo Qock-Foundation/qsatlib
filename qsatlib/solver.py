@@ -42,6 +42,19 @@ class BruteForceSolver:
                     if not result:
                         break
                 return result
+            if formula.quantifier == QuantifierType.EXISTS_UNIQUE:
+                cnt_ok = 0
+                for mask in range(2 ** len(formula.variables)):
+                    for i, variable in enumerate(formula.variables):
+                        if variable.id in assignments:
+                            raise SuckError(f'detected nested quantifiers by {variable}')
+                        assignments[variable.id] = bool((mask >> i) & 1)
+                    cnt_ok += self.solve(formula.child, assignments)
+                    for variable in formula.variables:
+                        del assignments[variable.id]
+                    if cnt_ok >= 2:
+                        break
+                return cnt_ok == 1
             raise SuckError(f'Unknown quantifier type {formula.quantifier}')
 
         if isinstance(formula, OperationNode):

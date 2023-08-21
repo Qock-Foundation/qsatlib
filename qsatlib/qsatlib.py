@@ -5,6 +5,7 @@ from typing import Sequence
 class QuantifierType(Enum):
     EXISTS = '∃'
     FORALL = '∀'
+    EXISTS_UNIQUE = '∃!'
 
 
 class OperationType(Enum):
@@ -132,11 +133,21 @@ def exist(*variables_and_formula):
     return QuantifierNode(QuantifierType.EXISTS, sum([variable.bits for variable in variables], []),
                           conj(*[variable.constraint for variable in variables], formula))
 
+exists = exist
+
 
 def forall(*variables_and_formula):
     variables, formula = list(variables_and_formula[:-1]), variables_and_formula[-1]
     return QuantifierNode(QuantifierType.FORALL, sum([variable.bits for variable in variables], []),
                           implies(conj(*[variable.constraint for variable in variables]), formula))
+
+
+def exist_unique(*variables_and_formula):
+    variables, formula = list(variables_and_formula[:-1]), variables_and_formula[-1]
+    return QuantifierNode(QuantifierType.EXISTS_UNIQUE, sum([variable.bits for variable in variables], []),
+                          conj(*[variable.constraint for variable in variables], formula))
+
+exists_unique = exist_unique
 
 
 def is_auxiliary(variable):
