@@ -122,11 +122,31 @@ def test_ge_transitivity_binary():
 
 def test_digraph_intersection():
     for n in range(4):
-        a = DirectedGraph(num_vertices=n)
-        b = DirectedGraph(num_vertices=n)
         for i in range(n):
             for j in range(n):
+                a = DirectedGraph(num_vertices=n)
+                b = DirectedGraph(num_vertices=n)
                 formula = forall(a, b, implies(a.has_edge(i, j) & b.has_edge(i, j), (a & b).has_edge(i, j)))
                 assert BruteForceSolver().solve(formula)
+        for i in range(n):
+            for j in range(n):
+                a = DirectedGraph(num_vertices=n)
+                b = DirectedGraph(num_vertices=n)
                 formula = forall(a, b, implies((a & b).has_edge(i, j), a.has_edge(i, j) & b.has_edge(i, j)))
+                assert BruteForceSolver().solve(formula)
+
+
+def test_digraph_union():
+    for n in range(4):
+        for i in range(n):
+            for j in range(n):
+                a = DirectedGraph(num_vertices=n)
+                b = DirectedGraph(num_vertices=n)
+                formula = forall(a, b, implies(a.has_edge(i, j) | b.has_edge(i, j), (a | b).has_edge(i, j)))
+                assert BruteForceSolver().solve(formula)
+        for i in range(n):
+            for j in range(n):
+                a = DirectedGraph(num_vertices=n)
+                b = DirectedGraph(num_vertices=n)
+                formula = forall(a, b, implies((a | b).has_edge(i, j), a.has_edge(i, j) | b.has_edge(i, j)))
                 assert BruteForceSolver().solve(formula)

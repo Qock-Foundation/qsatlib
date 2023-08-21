@@ -18,10 +18,20 @@ class DirectedGraph(Variable):
         conditions = []
         for i in range(self.num_vertices):
             for j in range(self.num_vertices):
-                conditions.append(eq(self[i][j] & other[i][j], intersection[i][j]))
-        intersection.constraint += conditions
+                conditions.append(eq(intersection[i][j], self[i][j] & other[i][j]))
+        intersection.constraint = intersection.constraint & conditions
         return intersection
 
-    @relation
+    @operation
+    def __or__(self, other):  # graph union
+        assert self.num_vertices == other.num_vertices
+        union = DirectedGraph(num_vertices=self.num_vertices)
+        conditions = []
+        for i in range(self.num_vertices):
+            for j in range(self.num_vertices):
+                conditions.append(eq(union[i][j], self[i][j] | other[i][j]))
+        union.constraint = union.constraint & conditions
+        return union
+
     def has_edge(self, i, j):
         return self[i][j]
