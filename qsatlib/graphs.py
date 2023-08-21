@@ -44,3 +44,8 @@ class DirectedGraph(Variable):
     @relation
     def __ne__(self, other):
         return disj(*[self[i][j] != other[i][j] for j in range(self.num_vertices) for i in range(self.num_vertices)])
+
+class UndirectedGraph(DirectedGraph):
+    def __init__(self, num_vertices):
+        super().__init__(num_vertices)
+        self.constraint = self.constraint & conj(*[eq(self[i][j], self[j][i]) for i in range(self.num_vertices) for j in range(i)])
