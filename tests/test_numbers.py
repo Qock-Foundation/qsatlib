@@ -5,14 +5,14 @@ from qsatlib.solver import BruteForceSolver
 def test_2m_equals_n_unary():
     n = UIntUnary(num_bits=4)
     m = UIntUnary(num_bits=4)
-    formula = forall(n, exist(m, n == m + m))
+    formula = forall(n, exists(m, n == m + m))
     assert not BruteForceSolver().solve(formula)
 
 
 def test_2m_equals_2n_unary():
     n = UIntUnary(num_bits=4)
     m = UIntUnary(num_bits=4)
-    formula = forall(n, exist(m, n + n == m + m))
+    formula = forall(n, exists(m, n + n == m + m))
     assert BruteForceSolver().solve(formula)
 
 
@@ -26,14 +26,14 @@ def test_add_commutativity_unary():
 def test_m2_equals_n_unary():
     n = UIntUnary(num_bits=4)
     m = UIntUnary(num_bits=4)
-    formula = forall(n, exist(m, n == m * m))
+    formula = forall(n, exists(m, n == m * m))
     assert not BruteForceSolver().solve(formula)
 
 
 def test_m2_equals_n2_unary():
     n = UIntUnary(num_bits=3)
     m = UIntUnary(num_bits=3)
-    formula = forall(n, exist(m, n * n == m * m))
+    formula = forall(n, exists(m, n * n == m * m))
     assert BruteForceSolver().solve(formula)
 
 
@@ -63,14 +63,14 @@ def test_ge_transitivity_unary():
 def test_2m_equals_n_binary():
     n = UIntBinary(num_bits=4)
     m = UIntBinary(num_bits=4)
-    formula = forall(n, exist(m, n == m + m))
+    formula = forall(n, exists(m, n == m + m))
     assert not BruteForceSolver().solve(formula)
 
 
 def test_2m_equals_2n_binary():
     n = UIntBinary(num_bits=4)
     m = UIntBinary(num_bits=4)
-    formula = forall(n, exist(m, n + n == m + m))
+    formula = forall(n, exists(m, n + n == m + m))
     assert BruteForceSolver().solve(formula)
 
 
@@ -84,14 +84,14 @@ def test_add_commutativity_binary():
 def test_m2_equals_n_binary():
     n = UIntBinary(num_bits=3)
     m = UIntBinary(num_bits=3)
-    formula = forall(n, exist(m, n == m * m))
+    formula = forall(n, exists(m, n == m * m))
     assert not BruteForceSolver().solve(formula)
 
 
 def test_m2_equals_n2_binary():
     n = UIntBinary(num_bits=3)
     m = UIntBinary(num_bits=3)
-    formula = forall(n, exist(m, n * n == m * m))
+    formula = forall(n, exists(m, n * n == m * m))
     assert BruteForceSolver().solve(formula)
 
 
@@ -115,6 +115,63 @@ def test_ge_transitivity_binary():
     b = UIntBinary(num_bits=4)
     c = UIntBinary(num_bits=4)
     formula = forall(a, b, c, implies((a >= b) & (b >= c), a >= c))
+    assert BruteForceSolver().solve(formula)
+
+
+def test_uniqueness():
+    a = UIntBinary(num_bits=4)
+    b = UIntBinary(num_bits=4)
+    formula = forall(a, exists_unique(b, a == b))
+    assert BruteForceSolver().solve(formula)
+
+    a = UIntBinary(num_bits=4)
+    b = UIntBinary(num_bits=4)
+    formula = forall(a, exists_unique(b, a <= b))
+    assert not BruteForceSolver().solve(formula)
+
+    a = UIntBinary(num_bits=4)
+    b = UIntBinary(num_bits=4)
+    c = UIntBinary(num_bits=4)
+    formula = forall(a, b, exists_unique(c, a + b == c))
+    assert BruteForceSolver().solve(formula)
+
+    # Check for >=
+    a = UIntBinary(num_bits=4)
+    b = UIntBinary(num_bits=4)
+    formula = forall(a, exists_unique(b, a >= b))
+    assert not BruteForceSolver().solve(formula)
+
+    # Check for !=
+    a = UIntBinary(num_bits=4)
+    b = UIntBinary(num_bits=4)
+    formula = forall(a, exists_unique(b, a != b))
+    assert not BruteForceSolver().solve(formula)
+
+    # Check for *
+    a = UIntBinary(num_bits=4)
+    b = UIntBinary(num_bits=4)
+    c = UIntBinary(num_bits=4)
+    formula = forall(a, b, exists_unique(c, a * b == c))
+    assert BruteForceSolver().solve(formula)
+
+    # Check for &
+    a = UIntBinary(num_bits=4)
+    b = UIntBinary(num_bits=4)
+    c = UIntBinary(num_bits=4)
+    formula = forall(a, b, exists_unique(c, (a & b) == c))
+    assert BruteForceSolver().solve(formula)
+
+    # Check for |
+    a = UIntBinary(num_bits=4)
+    b = UIntBinary(num_bits=4)
+    c = UIntBinary(num_bits=4)
+    formula = forall(a, b, exists_unique(c, (a | b) == c))
+    assert BruteForceSolver().solve(formula)
+
+    # Check for ~ (bitwise not)
+    a = UIntBinary(num_bits=4)
+    b = UIntBinary(num_bits=4)
+    formula = forall(a, exists_unique(b, ~a == b))
     assert BruteForceSolver().solve(formula)
 
 
