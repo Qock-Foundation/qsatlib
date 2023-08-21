@@ -1,4 +1,6 @@
-from solver import *
+from qsatlib import *
+from solver import BruteForceSolver
+from structures.numbers import UIntUnary, UIntBinary
 
 
 def test_2m_equals_n_unary():
