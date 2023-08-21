@@ -122,18 +122,11 @@ class Variable:
     def __getitem__(self, item):
         return self.bits[item] if 0 <= item < len(self.bits) else ConstantNode(False)
 
-    # because default __ne__ (!__eq__) is written as boolean not, which is not correct, the following code should be used:
-    #@relation
-    #def __ne__(self, other):
-    #    return ~(self == other)
-
 
 def exist(*variables_and_formula):
     variables, formula = list(variables_and_formula[:-1]), variables_and_formula[-1]
     return QuantifierNode(QuantifierType.EXISTS, sum([variable.bits for variable in variables], []),
                           conj(*[variable.constraint for variable in variables], formula))
-
-exists = exist
 
 
 def forall(*variables_and_formula):
@@ -147,8 +140,6 @@ def exist_unique(*variables_and_formula):
     return QuantifierNode(QuantifierType.EXISTS_UNIQUE, sum([variable.bits for variable in variables], []),
                           conj(*[variable.constraint for variable in variables], formula))
 
-exists_unique = exist_unique
-
 
 def is_auxiliary(variable):
     return isinstance(variable, Variable) and variable.auxiliary
@@ -156,7 +147,11 @@ def is_auxiliary(variable):
 
 def operation(func):
     def inner(*variables):
-        aux_vars = [variable for variable in variables if is_auxiliary(variable)]
+        aux_vars = []
+        for variable in variables:
+            if is_auxiliary(variable):
+                variable.auxiliary = False
+                aux_vars.append(variable)
         result = func(*variables)
         result.auxiliary = True
         if aux_vars:
@@ -168,7 +163,11 @@ def operation(func):
 
 def relation(func):
     def inner(*variables):
-        aux_vars = [variable for variable in variables if is_auxiliary(variable)]
+        aux_vars = []
+        for variable in variables:
+            if is_auxiliary(variable):
+                variable.auxiliary = False
+                aux_vars.append(variable)
         formula = func(*variables)
         if aux_vars:
             formula = exist(*aux_vars, formula)

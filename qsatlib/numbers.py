@@ -33,12 +33,24 @@ class UIntUnary(Variable):
         return conj(*[self[i] == other[i] for i in range(max(len(self), len(other)))])
 
     @relation
+    def __ne__(self, other):
+        return ~(self == other)
+
+    @relation
     def __le__(self, other):
         return conj(*[implies(other[i], self[i]) for i in range(max(len(self), len(other)))])
 
     @relation
+    def __lt__(self, other):
+        return (self <= other) & (self != other)
+
+    @relation
     def __ge__(self, other):
-        return conj(*[implies(self[i], other[i]) for i in range(max(len(self), len(other)))])
+        return other <= self
+
+    @relation
+    def __gt__(self, other):
+        return other < self
 
 
 class UIntBinary(Variable):
@@ -110,8 +122,12 @@ class UIntBinary(Variable):
 
     @relation
     def __le__(self, other):
+        return (self < other) | (self == other)
+
+    @relation
+    def __lt__(self, other):
         assert len(self) == len(other)
-        options = [self == other]
+        options = []
         for i in range(len(self)):
             options.append(conj(~self[i], other[i],
                                 *[self[j] == other[j] for j in range(i + 1, len(self))]))
@@ -119,9 +135,8 @@ class UIntBinary(Variable):
 
     @relation
     def __ge__(self, other):
-        assert len(self) == len(other)
-        options = [self == other]
-        for i in range(len(self)):
-            options.append(conj(self[i], ~other[i],
-                                *[self[j] == other[j] for j in range(i + 1, len(self))]))
-        return disj(*options)
+        return other <= self
+
+    @relation
+    def __gt__(self, other):
+        return other < self
