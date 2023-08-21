@@ -116,3 +116,60 @@ def test_ge_transitivity_binary():
     c = UIntBinary(num_bits=4)
     formula = forall(a, b, c, implies((a >= b) & (b >= c), a >= c))
     assert BruteForceSolver().solve(formula)
+
+
+def test_logical_and():
+    a = UIntBinary(num_bits=4)
+    b = UIntBinary(num_bits=4)
+    formula = forall(a, b, (a & b) == (b & a))
+    assert BruteForceSolver().solve(formula)
+    a = UIntBinary(num_bits=4)
+    b = UIntBinary(num_bits=4)
+    c = UIntBinary(num_bits=4)
+    formula = forall(a, b, c, ((a & b) & c) == (a & (b & c)))
+    assert BruteForceSolver().solve(formula)
+    a = UIntBinary(num_bits=4)
+    b = UIntBinary(num_bits=4)
+    formula = forall(a, b, (a & b) <= a)
+    assert BruteForceSolver().solve(formula)
+    # add symmetric one
+    formula = forall(a, b, (a & b) <= b)
+    assert BruteForceSolver().solve(formula)
+
+
+def test_logical_or():
+    a = UIntBinary(num_bits=4)
+    b = UIntBinary(num_bits=4)
+    formula = forall(a, b, (a | b) == (b | a))
+    assert BruteForceSolver().solve(formula)
+    a = UIntBinary(num_bits=4)
+    b = UIntBinary(num_bits=4)
+    c = UIntBinary(num_bits=4)
+    formula = forall(a, b, c, ((a | b) | c) == (a | (b | c)))
+    assert BruteForceSolver().solve(formula)
+    a = UIntBinary(num_bits=4)
+    b = UIntBinary(num_bits=4)
+    formula = forall(a, b, a <= (a | b))
+    assert BruteForceSolver().solve(formula)
+    # add symmetric one
+    formula = forall(a, b, b <= (a | b))
+    assert BruteForceSolver().solve(formula)
+
+
+def test_demorgans_law():
+    a = UIntBinary(num_bits=4)
+    b = UIntBinary(num_bits=4)
+    formula = forall(a, b, ~(a & b) == (~a | ~b))
+    assert BruteForceSolver().solve(formula)
+    formula = forall(a, b, ~(a | b) == (~a & ~b))
+    assert BruteForceSolver().solve(formula)
+
+
+def test_distributivity_law():
+    a = UIntBinary(num_bits=4)
+    b = UIntBinary(num_bits=4)
+    c = UIntBinary(num_bits=4)
+    formula = forall(a, b, c, a & (b | c) == (a & b) | (a & c))
+    assert BruteForceSolver().solve(formula)
+    formula = forall(a, b, c, a | (b & c) == (a | b) & (a | c))
+    assert BruteForceSolver().solve(formula)

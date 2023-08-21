@@ -80,6 +80,29 @@ class UIntBinary(Variable):
         result.constraint = exist(*r, conj(*conditions, result == s))
         return result
 
+    @operation
+    def __and__(self, other):
+        assert len(self) == len(other)
+        n = len(self)
+        result = UIntBinary(num_bits=n)
+        result.constraint = conj(*[result[i] == (self[i] & other[i]) for i in range(n)])
+        return result
+
+    @operation
+    def __or__(self, other):
+        assert len(self) == len(other)
+        n = len(self)
+        result = UIntBinary(num_bits=n)
+        result.constraint = conj(*[result[i] == (self[i] | other[i]) for i in range(n)])
+        return result
+
+    @operation
+    def __invert__(self):
+        n = len(self)
+        result = UIntBinary(num_bits=n)
+        result.constraint = conj(*[result[i] == ~self[i] for i in range(n)])
+        return result
+
     @relation
     def __eq__(self, other):
         assert len(self) == len(other)
