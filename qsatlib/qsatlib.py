@@ -140,10 +140,9 @@ def operation(func):
                 variable.auxiliary = False
                 aux_vars.append(variable)
         result = func(*variables)
-        if isinstance(result, Variable):
-            result.auxiliary = True
-            if aux_vars:
-                result.constraint = exist(*aux_vars, result.constraint)
+        result.auxiliary = True
+        if aux_vars:
+            result.constraint = exist(*aux_vars, result.constraint)
         return result
 
     return inner
@@ -165,8 +164,8 @@ def relation(func):
 
 
 class Variable:
-    def __init__(self, bits: Sequence[BitNode]):
-        self.bits = bits
+    def __init__(self, num_bits):
+        self.bits = [BitNode() for _ in range(num_bits)]
         self.constraint = ConstantNode(True)
         self.auxiliary = False
 

@@ -3,7 +3,7 @@ from qsatlib.qsatlib import *
 
 class UIntUnary(Variable):
     def __init__(self, num_bits):
-        super().__init__([BitNode() for _ in range(num_bits)])
+        super().__init__(num_bits)
         self.constraint = conj(*[implies(self[i], self[i - 1]) for i in range(1, num_bits)])
 
     @operation
@@ -53,7 +53,7 @@ class UIntUnary(Variable):
 
 class UIntBinary(Variable):
     def __init__(self, num_bits):
-        super().__init__([BitNode() for _ in range(num_bits)])
+        super().__init__(num_bits)
 
     @staticmethod
     def _bit_sum_is(a, b, c, s0, s1):  # a + b + c == 2 * s1 + s0
@@ -65,11 +65,11 @@ class UIntBinary(Variable):
         assert len(self) == len(other)
         n = len(self)
         result = UIntBinary(num_bits=n)
-        carry = UIntBinary(num_bits=n + 1)
+        carry = Variable(num_bits=n + 1)
         conditions = [~carry[0]]
         for k in range(n):
             conditions.append(UIntBinary._bit_sum_is(self[k], other[k], carry[k], result[k], carry[k + 1]))
-        result.constraint = exist(carry, conj(*conditions))
+        result.constraint &= exist(carry, conj(*conditions))
         return result
 
     @operation
@@ -85,9 +85,9 @@ class UIntBinary(Variable):
                 conditions.append(r[i][j] == (self[j - i] & other[i]))
         s = r[0]
         for i in range(1, n):
-            s = s + r[i]  # Concise
+            s = s + r[i]
         result = UIntBinary(num_bits=n)
-        result.constraint = exist(*r, conj(*conditions, result == s))
+        result.constraint &= exist(*r, conj(*conditions, result == s))
         return result
 
     @operation
@@ -95,7 +95,7 @@ class UIntBinary(Variable):
         assert len(self) == len(other)
         n = len(self)
         result = UIntBinary(num_bits=n)
-        result.constraint = conj(*[result[i] == (self[i] & other[i]) for i in range(n)])
+        result.constraint &= conj(*[result[i] == (self[i] & other[i]) for i in range(n)])
         return result
 
     @operation
@@ -103,14 +103,14 @@ class UIntBinary(Variable):
         assert len(self) == len(other)
         n = len(self)
         result = UIntBinary(num_bits=n)
-        result.constraint = conj(*[result[i] == (self[i] | other[i]) for i in range(n)])
+        result.constraint &= conj(*[result[i] == (self[i] | other[i]) for i in range(n)])
         return result
 
     @operation
     def __invert__(self):
         n = len(self)
         result = UIntBinary(num_bits=n)
-        result.constraint = conj(*[result[i] == ~self[i] for i in range(n)])
+        result.constraint &= conj(*[result[i] == ~self[i] for i in range(n)])
         return result
 
     @relation
