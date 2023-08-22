@@ -50,6 +50,14 @@ class UIntUnary(Variable):
     def __gt__(self, other):
         return other < self
 
+    def __eq__(self, other):
+        if isinstance(other, UIntUnary):
+            return (self <= other) & (self >= other)
+        elif isinstance(other, int):
+            return conj(self[other], ~self[other + 1] if other < len(self.bits) else ConstantNode(True))
+        else:
+            raise SuckError('Comparison of UIntUnary with {type(other)} is not implemented')
+
 
 class UIntBinary(Variable):
     def __init__(self, num_bits):

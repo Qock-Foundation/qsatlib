@@ -33,13 +33,13 @@ class DirectedGraph(Variable):
 
     @relation
     def has_edge(self, i, j):
-        if isinstance(i, GraphVertex):
-            assert i.graph == self
-            i = i.index
-        if isinstance(j, GraphVertex):
-            assert j.graph == self
-            j == j.index
-        return self[self.num_vertices * i + j]
+        if isinstance(i, int) and isinstance(j, int):
+            return self[self.num_vertices * i + j]
+        elif isinstance(i, GraphVertex) and isinstance(j, GraphVertex):
+            return disj(*[(i.index == i_index) & (j.index == j_index) & self[i_index * self.num_vertices + j_index]
+                          for i_index in range(self.num_vertices) for j_index in range(self.num_vertices)])
+        else:
+            raise SuckError('Comparing number-given vertex with symbol-given vertex is not implemented')
 
     def vertex(self):  # yields abstract vertex of this graph
         return GraphVertex(self)
