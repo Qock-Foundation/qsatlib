@@ -6,11 +6,6 @@ class UIntUnary(Variable):
         super().__init__([BitNode() for _ in range(num_bits)])
         self.constraint = conj(*[implies(self[i], self[i - 1]) for i in range(1, num_bits)])
 
-    def __getitem__(self, item):
-        if 0 <= item < len(self.bits):
-            return self.bits[item]
-        return ConstantNode(item < 0)
-
     @operation
     def __add__(self, other):
         result = UIntUnary(num_bits=len(self) + len(other))
@@ -34,12 +29,10 @@ class UIntUnary(Variable):
         return result
 
     @relation
-    def __eq__(self, other):
-        return conj(*[self[i] == other[i] for i in range(max(len(self), len(other)))])
-
-    @relation
-    def __ne__(self, other):
-        return ~(self == other)
+    def __getitem__(self, item):
+        if 0 <= item < len(self.bits):
+            return self.bits[item]
+        return ConstantNode(item < 0)
 
     @relation
     def __le__(self, other):
@@ -119,15 +112,6 @@ class UIntBinary(Variable):
         result = UIntBinary(num_bits=n)
         result.constraint = conj(*[result[i] == ~self[i] for i in range(n)])
         return result
-
-    @relation
-    def __eq__(self, other):
-        assert len(self) == len(other)
-        return conj(*[self[i] == other[i] for i in range(len(self))])
-
-    @relation
-    def __ne__(self, other):
-        return ~(self == other)
 
     @relation
     def __le__(self, other):

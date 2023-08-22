@@ -2,14 +2,11 @@ from qsatlib.qsatlib import *
 
 
 class DirectedGraph(Variable):
-    def __init__(self, num_vertices):
+    def __init__(self, num_vertices, allow_self_loops=False):
         self.num_vertices = num_vertices
-        num_bits = self.num_vertices * self.num_vertices
-        super().__init__([BitNode() for _ in range(num_bits)])
-        self.constraint = conj(*[~self[i][i] for i in range(num_vertices)])  # no self-loops
-
-    def __getitem__(self, i):
-        return self.bits[i * self.num_vertices:(i + 1) * self.num_vertices]
+        super().__init__([BitNode() for _ in range(num_vertices ** 2)])
+        if not allow_self_loops:
+            self.constraint = conj(*[~self.outgoing(i)[i] for i in range(num_vertices)])
 
     @operation
     def __and__(self, other):  # graph intersection
@@ -18,7 +15,7 @@ class DirectedGraph(Variable):
         conditions = []
         for i in range(self.num_vertices):
             for j in range(self.num_vertices):
-                conditions.append(intersection[i][j] == self[i][j] & other[i][j])
+                conditions.append(intersection.outgoing(i)[j] == self.outgoing(i)[j] & other.outgoing(i)[j])
         intersection.constraint &= conj(*conditions)
         return intersection
 
@@ -29,26 +26,25 @@ class DirectedGraph(Variable):
         conditions = []
         for i in range(self.num_vertices):
             for j in range(self.num_vertices):
-                conditions.append(union[i][j] == self[i][j] | other[i][j])
+                conditions.append(union.outgoing(i)[j] == self.outgoing(i)[j] | other.outgoing(i)[j])
         union.constraint &= conj(*conditions)
         return union
 
+    @operation
+    def ingoing(self, i):
+        return self.bits[i::self.num_vertices]
+
+    @operation
+    def outgoing(self, i):
+        return self.bits[i * self.num_vertices:(i + 1) * self.num_vertices]
+
     @relation
     def has_edge(self, i, j):
-        return self[i][j]
-
-    @relation
-    def __eq__(self, other):
-        return conj(*[self[i][j] == other[i][j]
-                      for j in range(self.num_vertices) for i in range(self.num_vertices)])
-
-    @relation
-    def __ne__(self, other):
-        return ~(self == other)
+        return self.outgoing(i)[j]
 
 
 class UndirectedGraph(DirectedGraph):
     def __init__(self, num_vertices):
         super().__init__(num_vertices)
-        self.constraint &= conj(*[self[i][j] == self[j][i]
+        self.constraint &= conj(*[self.outgoing(i)[j] == self.ingoing(i)[j]
                                   for i in range(self.num_vertices) for j in range(i)])

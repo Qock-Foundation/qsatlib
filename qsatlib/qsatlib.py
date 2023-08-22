@@ -110,19 +110,6 @@ def eq(*formulas: Formula):
     return conj(*[formulas[i] == formulas[0] for i in range(1, len(formulas))])
 
 
-class Variable:
-    def __init__(self, bits: Sequence[BitNode]):
-        self.bits = bits
-        self.constraint = ConstantNode(True)
-        self.auxiliary = False
-
-    def __len__(self):
-        return len(self.bits)
-
-    def __getitem__(self, item):
-        return self.bits[item] if 0 <= item < len(self.bits) else ConstantNode(False)
-
-
 def exist(*variables_and_formula):
     variables, formula = list(variables_and_formula[:-1]), variables_and_formula[-1]
     return QuantifierNode(QuantifierType.EXISTS, sum([variable.bits for variable in variables], []),
@@ -153,9 +140,10 @@ def operation(func):
                 variable.auxiliary = False
                 aux_vars.append(variable)
         result = func(*variables)
-        result.auxiliary = True
-        if aux_vars:
-            result.constraint = exist(*aux_vars, result.constraint)
+        if isinstance(result, Variable):
+            result.auxiliary = True
+            if aux_vars:
+                result.constraint = exist(*aux_vars, result.constraint)
         return result
 
     return inner
@@ -174,3 +162,25 @@ def relation(func):
         return formula
 
     return inner
+
+
+class Variable:
+    def __init__(self, bits: Sequence[BitNode]):
+        self.bits = bits
+        self.constraint = ConstantNode(True)
+        self.auxiliary = False
+
+    def __len__(self):
+        return len(self.bits)
+
+    @relation
+    def __getitem__(self, item):
+        return self.bits[item] if 0 <= item < len(self.bits) else ConstantNode(False)
+
+    @relation
+    def __eq__(self, other):
+        return conj(*[self[i] == other[i] for i in range(max(len(self), len(other)))])
+
+    @relation
+    def __ne__(self, other):
+        return ~(self == other)
