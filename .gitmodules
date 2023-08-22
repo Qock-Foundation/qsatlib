@@ -1,0 +1,3 @@
+[submodule "caqe"]
+	path = caqe
+	url = https://github.com/ltentrup/caqe
