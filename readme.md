@@ -1,6 +1,7 @@
 ## Clone qsatlib
 
     git clone https://github.com/Qock-Foundation/qsatlib
+    cd qsatlib
 
 ## Install dependency: caqe
 
