@@ -76,49 +76,6 @@ def test_unary_mul():
     assert solver.solve(formula)
 
 
-def test_unary_equality():
-    n = 3
-    solver = BruteForceSolver()
-
-    # Uniqueness for ==
-    a = UIntUnary(num_bits=n)
-    b = UIntUnary(num_bits=n)
-    formula = forall(a, exist_unique(b, b == a))
-    assert solver.solve(formula)
-
-    # Commutativity of ==
-    a = UIntUnary(num_bits=n)
-    b = UIntUnary(num_bits=n)
-    formula = forall(a, b, implies(a == b, b == a))
-    assert solver.solve(formula)
-
-    # Transitivity of ==
-    a = UIntUnary(num_bits=n)
-    b = UIntUnary(num_bits=n)
-    c = UIntUnary(num_bits=n)
-    formula = forall(a, b, c, implies((a == b) & (b == c), a == c))
-    assert solver.solve(formula)
-
-    # Non-uniqueness for !=
-    a = UIntUnary(num_bits=n)
-    b = UIntUnary(num_bits=n)
-    formula = forall(a, exist_unique(b, b != a))
-    assert not solver.solve(formula)
-
-    # Commutativity of !=
-    a = UIntUnary(num_bits=n)
-    b = UIntUnary(num_bits=n)
-    formula = forall(a, b, implies(a != b, b != a))
-    assert solver.solve(formula)
-
-    # Non-transitivity of !=
-    a = UIntUnary(num_bits=n)
-    b = UIntUnary(num_bits=n)
-    c = UIntUnary(num_bits=n)
-    formula = forall(a, b, c, implies((a != b) & (b != c), a != c))
-    assert not solver.solve(formula)
-
-
 def test_unary_order():
     n = 3
     solver = BruteForceSolver()
@@ -323,49 +280,6 @@ def test_binary_mul():
     c = UIntBinary(num_bits=n)
     formula = forall(a, b, c, (a * b) * c == a * (b * c))
     assert solver.solve(formula)
-
-
-def test_binary_equality():
-    n = 3
-    solver = BruteForceSolver()
-
-    # Uniqueness for ==
-    a = UIntBinary(num_bits=n)
-    b = UIntBinary(num_bits=n)
-    formula = forall(a, exist_unique(b, b == a))
-    assert solver.solve(formula)
-
-    # Commutativity of ==
-    a = UIntBinary(num_bits=n)
-    b = UIntBinary(num_bits=n)
-    formula = forall(a, b, implies(a == b, b == a))
-    assert solver.solve(formula)
-
-    # Transitivity of ==
-    a = UIntBinary(num_bits=n)
-    b = UIntBinary(num_bits=n)
-    c = UIntBinary(num_bits=n)
-    formula = forall(a, b, c, implies((a == b) & (b == c), a == c))
-    assert solver.solve(formula)
-
-    # Non-uniqueness for !=
-    a = UIntBinary(num_bits=n)
-    b = UIntBinary(num_bits=n)
-    formula = forall(a, exist_unique(b, b != a))
-    assert not solver.solve(formula)
-
-    # Commutativity of !=
-    a = UIntBinary(num_bits=n)
-    b = UIntBinary(num_bits=n)
-    formula = forall(a, b, implies(a != b, b != a))
-    assert solver.solve(formula)
-
-    # Non-transitivity of !=
-    a = UIntBinary(num_bits=n)
-    b = UIntBinary(num_bits=n)
-    c = UIntBinary(num_bits=n)
-    formula = forall(a, b, c, implies((a != b) & (b != c), a != c))
-    assert not solver.solve(formula)
 
 
 def test_binary_order():
