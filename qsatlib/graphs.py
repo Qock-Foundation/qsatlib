@@ -41,6 +41,7 @@ class DirectedGraph(Variable):
         else:
             raise SuckError('Comparing number-given vertex with symbol-given vertex is not implemented')
 
+    @operation
     def vertex(self):  # yields abstract vertex of this graph
         return GraphVertex(self)
 
