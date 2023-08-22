@@ -1,4 +1,5 @@
 from qsatlib.qsatlib import *
+from qsatlib.numbers import UIntUnary
 
 
 class DirectedGraph(Variable):
@@ -32,7 +33,16 @@ class DirectedGraph(Variable):
 
     @relation
     def has_edge(self, i, j):
+        if isinstance(i, GraphVertex):
+            assert i.graph == self
+            i = i.index
+        if isinstance(j, GraphVertex):
+            assert j.graph == self
+            j == j.index
         return self[self.num_vertices * i + j]
+
+    def vertex(self):  # yields abstract vertex of this graph
+        return GraphVertex(self)
 
 
 class UndirectedGraph(DirectedGraph):
@@ -41,3 +51,10 @@ class UndirectedGraph(DirectedGraph):
                          allow_self_loops=allow_self_loops)
         self.constraint &= conj(*[self.has_edge(i, j) == self.has_edge(j, i)
                                   for i in range(self.num_vertices) for j in range(i)])
+
+
+class GraphVertex(Variable):
+    def __init__(self, graph):
+        super().__init__(0)
+        self.graph = graph
+        self.index = UIntUnary(num_bits=graph.num_vertices)

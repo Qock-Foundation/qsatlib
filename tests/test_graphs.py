@@ -122,3 +122,19 @@ def test_graph_set_operations():
     c = UndirectedGraph(num_vertices=n)
     formula = forall(a, b, c, ((a & b) | c) == ((a | c) & (b | c)))
     assert solver.solve(formula)
+
+
+def test_vertices():
+    solver = BruteForceSolver()
+    g = UndirectedGraph(num_vertices=2)
+    u, v = g.vertex(), g.vertex()
+    formula = forall(u, v, (u == v) | (u != v))
+    assert solver.solve(formula)
+    g = UndirectedGraph(num_vertices=2)
+    u, v = g.vertex(), g.vertex()
+    formula = forall(u, v, (u == v) | g.has_edge(u, v))
+    assert not solver.solve(formula)
+    g = UndirectedGraph(num_vertices=2)
+    u, v = g.vertex(), g.vertex()
+    formula = forall(u, v, g.has_edge(u, v) | ~g.has_edge(u, v))
+    assert solver.solve(formula)
