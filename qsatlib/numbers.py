@@ -36,7 +36,15 @@ class UIntUnary(Variable):
 
     @relation
     def __le__(self, other):
-        return conj(*[implies(other[i], self[i]) for i in range(max(len(self), len(other)))])
+        if isinstance(other, UIntUnary):
+            return conj(*[implies(other[i], self[i]) for i in range(max(len(self), len(other)))])
+        elif isinstance(other, int):
+            if 0 <= other < len(self.bits) - 1:
+                return ~self[other + 1]
+            else:
+                return ConstantNode(other >= 0)
+        else:
+            raise SuckError(f'UIntUnary comparison with {type(other)} is not implemented')
 
     @relation
     def __lt__(self, other):
@@ -49,6 +57,15 @@ class UIntUnary(Variable):
     @relation
     def __gt__(self, other):
         return other < self
+
+    @relation
+    def __eq__(self, other):
+        if isinstance(other, UIntUnary):
+            return conj(*[eq(self[i], other[i]) for i in range(len(self.bits))])
+        elif isinstance(other, int):
+            return self <= other & ~(self <= other + 1)
+        else:
+            raise SuckError(f'UIntUnary comparison with {type(other)} is not implemented')
 
 
 class UIntBinary(Variable):

@@ -208,6 +208,82 @@ def test_unary_dist():
     assert solver.solve(formula)
 
 
+def test_unary_comp_with_ints():
+    solver = BruteForceSolver()
+    for n in range(1, 4):
+        for k in range(n, n + 4):
+            a = UIntUnary(num_bits=n)
+            formula = forall(a, a <= k)
+            assert solver.solve(formula)
+
+            a = UIntUnary(num_bits=n)
+            formula = forall(a, a < k + 1)
+            assert solver.solve(formula)
+
+        for k in range(0, n):
+            a = UIntUnary(num_bits=n)
+            formula = exists(a, a >= k)
+            assert solver.solve(formula)
+
+        # Adding more similar tests
+
+        # Test for a == k
+        for k in range(0, n + 1):
+            a = UIntUnary(num_bits=n)
+            formula = exists(a, a == k)
+            assert solver.solve(formula)
+
+        # Test for a != k
+        for k in range(0, n):
+            a = UIntUnary(num_bits=n)
+            formula = exists(a, a != k)
+            assert solver.solve(formula)
+
+        # Test for a > k
+        for k in range(0, n - 1):
+            a = UIntUnary(num_bits=n)
+            formula = exists(a, a > k)
+            assert solver.solve(formula)
+
+
+#def test_binary_comp_with_ints():
+#    solver = BruteForceSolver()
+#    for n in range(1, 4):
+#        for k in range(2 ** n, 2 ** n + 4):
+#            a = UIntBinary(num_bits=n)
+#            formula = forall(a, a <= k)
+#            assert solver.solve(formula)
+#
+#            a = UIntBinary(num_bits=n)
+#            formula = forall(a, a < k + 1)
+#            assert solver.solve(formula)
+#
+#        for k in range(0, 2 ** n):
+#            a = UIntBinary(num_bits=n)
+#            formula = exists(a, a >= k)
+#            assert solver.solve(formula)
+#
+#        # Adding more similar tests
+#
+#        # Test for a == k
+#        for k in range(0, 2 ** n + 1):
+#            a = UIntBinary(num_bits=n)
+#            formula = exists(a, a == k)
+#            assert solver.solve(formula)
+#
+#        # Test for a != k
+#        for k in range(0, 2 ** n):
+#            a = UIntBinary(num_bits=n)
+#            formula = exists(a, a != k)
+#            assert solver.solve(formula)
+#
+#        # Test for a > k
+#        for k in range(0, 2 ** n - 1):
+#            a = UIntBinary(num_bits=n)
+#            formula = exists(a, a > k)
+#            assert solver.solve(formula)
+
+
 def test_binary_add():
     n = 2
     solver = BruteForceSolver()
