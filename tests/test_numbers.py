@@ -2,6 +2,48 @@ from qsatlib.numbers import *
 from qsatlib.solver import BruteForceSolver
 
 
+def test_unary_something():
+    solver = BruteForceSolver()
+    a = UIntUnary(num_bits=1)
+    formula = forall(a, a == 0)
+    assert not solver.solve(formula)
+    a = UIntUnary(num_bits=2)
+    formula = forall(a, a <= 2)
+    assert solver.solve(formula)
+    a = UIntUnary(num_bits=3)
+    formula = forall(a, a == 0)
+    assert not solver.solve(formula)
+    a = UIntUnary(num_bits=4)
+    formula = forall(a, a <= 4)
+    assert solver.solve(formula)
+    a = UIntUnary(num_bits=5)
+    formula = exists(a, a == 0)
+    assert solver.solve(formula)
+    a = UIntUnary(num_bits=3)
+    formula = exists(a, a > 3)
+    assert not solver.solve(formula)
+    a = UIntUnary(num_bits=2)
+    formula = a == 2
+    assert not solver.solve(formula)
+    a = UIntUnary(num_bits=4)
+    formula = exists(a, a % 2 == 1)
+    assert solver.solve(formula)
+    a = UIntUnary(num_bits=4)
+    formula = exists(a, a % 2 == 0)
+    assert solver.solve(formula)
+    a = UIntUnary(num_bits=5)
+    formula = exists(a, a == 3)
+    assert solver.solve(formula)
+	# test_unary_prime_numbers():
+    a = UIntUnary(num_bits=6)
+    formula = exists(a, (a == 2) | (a == 3) | (a == 5))
+    assert solver.solve(formula)
+    # test_unary_non_prime_numbers():
+    a = UIntUnary(num_bits=6)
+    formula = exists(a, (a == 0) | (a == 1) | (a == 4) | (a == 6))
+    assert solver.solve(formula)
+
+
 def test_unary_add():
     n = 2
     solver = BruteForceSolver()

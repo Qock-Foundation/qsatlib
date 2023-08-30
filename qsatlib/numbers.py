@@ -50,6 +50,7 @@ class UIntUnary(Variable):
     def __gt__(self, other):
         return other < self
 
+    @relation
     def __eq__(self, other):
         if isinstance(other, UIntUnary):
             return (self <= other) & (self >= other)
