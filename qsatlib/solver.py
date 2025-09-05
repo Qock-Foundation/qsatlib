@@ -1,5 +1,5 @@
-from qsatlib.qsatlib import *
-from qsatlib.error import *
+from .qsatlib import *
+from .error import *
 
 
 class BruteForceSolver:

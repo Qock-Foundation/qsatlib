@@ -1,4 +1,4 @@
-from qsatlib.qsatlib import *
+from .qsatlib import *
 
 
 class DirectedGraph(Variable):
@@ -7,6 +7,10 @@ class DirectedGraph(Variable):
         self.num_vertices = num_vertices
         if not allow_self_loops:
             self.constraint = conj(*[~self.has_edge(i, i) for i in range(num_vertices)])
+
+    def __eq__(self, other):
+        assert self.num_vertices == other.num_vertices
+        return conj(*[self.get(i) == other.get(i) for i in range(self.num_vertices ** 2)])
 
     @operation
     def __and__(self, other):
@@ -32,7 +36,7 @@ class DirectedGraph(Variable):
 
     @relation
     def has_edge(self, i, j):
-        return self[self.num_vertices * i + j]
+        return self.get(self.num_vertices * i + j)
 
 
 class UndirectedGraph(DirectedGraph):
