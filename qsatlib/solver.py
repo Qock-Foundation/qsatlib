@@ -3,7 +3,7 @@ from .error import *
 
 
 class BruteForceSolver:
-    def solve(self, formula: Formula, assignments=None):
+    def solve(self, formula: Node, assignments=None):
         if assignments is None:
             assignments = dict()
 
