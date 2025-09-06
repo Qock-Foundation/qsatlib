@@ -168,7 +168,9 @@ class UInt(Variable):
                 conditions.append(~r[i].get(j))
             for j in range(i, n):
                 conditions.append(r[i].get(j) == (a.get_or(j - i) & b.get_or(i)))
-        s = sum(r)
+        s = r[0]
+        for elem in r[1:]:
+            s += elem
         return exist(*r, conj(*conditions, s == c))
 
     @convert_scalars
