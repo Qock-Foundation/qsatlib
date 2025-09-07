@@ -78,6 +78,131 @@ class Node:
             return res
         raise ValueError('Unknown node')
 
+    def pnf(self):
+        if isinstance(self, BitNode) or isinstance(self, ConstantNode):
+            return PNF([], self)
+        if isinstance(self, QuantifierNode):
+            child_pnf = self.child.pnf()
+            quantifiers = [(self.quantifier, x) for x in self.variables]
+            quantifiers += child_pnf.quantifiers
+            return PNF(quantifiers, child_pnf.node)
+        if isinstance(self, OperationNode):
+            if self.op_type == OperationType.NOT:
+                return ~self.children[0].pnf()
+            child1_pnf = self.children[0].pnf()
+            child2_pnf = self.children[1].pnf()
+            if self.op_type == OperationType.AND:
+                return child1_pnf & child2_pnf
+            if self.op_type == OperationType.OR:
+                return child1_pnf | child2_pnf
+            if self.op_type == OperationType.XOR:
+                return child1_pnf ^ child2_pnf
+            if self.op_type == OperationType.EQ:
+                return child1_pnf == child2_pnf
+            raise ValueError('Unknown operation')
+        raise ValueError('Unknown node')
+
+    def simplify(self):
+        if isinstance(self, BitNode) or isinstance(self, ConstantNode):
+            return self
+        if isinstance(self, OperationNode):
+            if self.op_type == OperationType.NOT:
+                child = self.children[0]
+                if isinstance(child, BitNode):
+                    return self
+                if isinstance(child, ConstantNode):
+                    return ConstantNode(not child.value)
+                if isinstance(child, OperationNode):
+                    if child.op_type == OperationType.NOT:
+                        return child.children[0].simplify()
+                    if child.op_type == OperationType.AND:
+                        child1 = OperationNode(OperationType.NOT, child.children[0])
+                        child2 = OperationNode(OperationType.NOT, child.children[1])
+                        return OperationNode(OperationType.OR, child1, child2).simplify()
+                    if child.op_type == OperationType.OR:
+                        child1 = OperationNode(OperationType.NOT, child.children[0])
+                        child2 = OperationNode(OperationType.NOT, child.children[1])
+                        return OperationNode(OperationType.AND, child1, child2).simplify()
+                    if child.op_type == OperationType.XOR:
+                        return OperationNode(OperationType.EQ, *child.children).simplify()
+                    if child.op_type == OperationType.EQ:
+                        return OperationNode(OperationType.XOR, *child.children).simplify()
+                    raise ValueError('Unknown child operation')
+                raise ValueError('Unknown child node')
+            if self.op_type == OperationType.AND:
+                child1, child2 = self.children[0].simplify(), self.children[1].simplify()
+                if isinstance(child1, ConstantNode):
+                    return child2 if child1.value else ConstantNode(False)
+                if isinstance(child2, ConstantNode):
+                    return child1 if child2.value else ConstantNode(False)
+                if isinstance(child1, BitNode) and isinstance(child2, BitNode) and child1.id == child2.id:
+                    return child1
+                if (isinstance(child1, BitNode) and isinstance(child2, OperationNode) and
+                        child2.op_type == OperationType.NOT and isinstance(child2.children[0], BitNode) and
+                        child1.id == child2.children[0].id):
+                    return ConstantNode(False)
+                if (isinstance(child2, BitNode) and isinstance(child1, OperationNode) and
+                        child1.op_type == OperationType.NOT and isinstance(child1.children[0], BitNode) and
+                        child2.id == child1.children[0].id):
+                    return ConstantNode(False)
+                return OperationNode(OperationType.AND, child1, child2)
+            if self.op_type == OperationType.OR:
+                child1, child2 = self.children[0].simplify(), self.children[1].simplify()
+                if isinstance(child1, ConstantNode):
+                    return child2 if not child1.value else ConstantNode(True)
+                if isinstance(child2, ConstantNode):
+                    return child1 if not child2.value else ConstantNode(True)
+                if isinstance(child1, BitNode) and isinstance(child2, BitNode) and child1.id == child2.id:
+                    return child1
+                if (isinstance(child1, BitNode) and isinstance(child2, OperationNode) and
+                        child2.op_type == OperationType.NOT and isinstance(child2.children[0], BitNode) and
+                        child1.id == child2.children[0].id):
+                    return ConstantNode(True)
+                if (isinstance(child2, BitNode) and isinstance(child1, OperationNode) and
+                        child1.op_type == OperationType.NOT and isinstance(child1.children[0], BitNode) and
+                        child2.id == child1.children[0].id):
+                    return ConstantNode(True)
+                return OperationNode(OperationType.OR, child1, child2)
+            if self.op_type == OperationType.XOR:
+                child1, child2 = self.children[0].simplify(), self.children[1].simplify()
+                if isinstance(child1, ConstantNode):
+                    return child2 if not child1.value else OperationNode(OperationType.NOT, child2).simplify()
+                if isinstance(child2, ConstantNode):
+                    return child1 if not child2.value else OperationNode(OperationType.NOT, child1).simplify()
+                if isinstance(child1, BitNode) and isinstance(child2, BitNode) and child1.id == child2.id:
+                    return ConstantNode(False)
+                if (isinstance(child1, BitNode) and isinstance(child2, OperationNode) and
+                        child2.op_type == OperationType.NOT and isinstance(child2.children[0], BitNode) and
+                        child1.id == child2.children[0].id):
+                    return ConstantNode(True)
+                if (isinstance(child2, BitNode) and isinstance(child1, OperationNode) and
+                        child1.op_type == OperationType.NOT and isinstance(child1.children[0], BitNode) and
+                        child2.id == child1.children[0].id):
+                    return ConstantNode(True)
+                return OperationNode(OperationType.XOR, child1, child2)
+            if self.op_type == OperationType.EQ:
+                child1, child2 = self.children[0].simplify(), self.children[1].simplify()
+                if isinstance(child1, ConstantNode):
+                    return child2 if child1.value else OperationNode(OperationType.NOT, child2).simplify()
+                if isinstance(child2, ConstantNode):
+                    return child1 if child2.value else OperationNode(OperationType.NOT, child1).simplify()
+                if isinstance(child1, BitNode) and isinstance(child2, BitNode) and child1.id == child2.id:
+                    return ConstantNode(True)
+                if (isinstance(child1, BitNode) and isinstance(child2, OperationNode) and
+                        child2.op_type == OperationType.NOT and isinstance(child2.children[0], BitNode) and
+                        child1.id == child2.children[0].id):
+                    return ConstantNode(False)
+                if (isinstance(child2, BitNode) and isinstance(child1, OperationNode) and
+                        child1.op_type == OperationType.NOT and isinstance(child1.children[0], BitNode) and
+                        child2.id == child1.children[0].id):
+                    return ConstantNode(False)
+                return OperationNode(OperationType.EQ, child1, child2)
+            raise ValueError('Unknown operation')
+        raise ValueError('Unknown node')
+
+    def eval(self):
+        return self.pnf().simplify().pcnf().eval()
+
 
 _VAR_CNT = 0
 
@@ -263,10 +388,7 @@ class Boolean(Variable):
             QuantifierType.EXISTS, self.aux_nodes, self.constraint & self.node)
 
     def eval(self):
-        node = self.get_node()
-        pnf = node2pnf(node)
-        pcnf = pnf2pcnf(pnf)
-        return eval_pcnf(pcnf)
+        return self.get_node().eval()
 
 
 def exist(*vars_cond):
@@ -391,6 +513,57 @@ class PNF:
             return PNF(quantifiers, child_pnf.node | ((neq | x | ~y) & (~x | y))), x
             # return PNF(quantifiers, child_pnf.formula | ((neq | x | y) & (~x | ~y))), x
 
+    def simplify(self):
+        return PNF(self.quantifiers, self.node.simplify())
+
+    def pcnf(self):
+        if self.quantifiers and self.quantifiers[-1][0] == QuantifierType.FORALL:
+            pnf = ~self
+            negated = True
+        else:
+            pnf = self
+            negated = False
+        result = PCNF(pnf.quantifiers, [], negated)
+
+        def compute_cnf(node) -> BitNode:
+            if isinstance(node, BitNode):
+                return node
+            x = BitNode()
+            result.quantifiers.append((QuantifierType.EXISTS, x))
+            if isinstance(node, ConstantNode):
+                result.cnf.append([x] if node.value else [~x])
+                return x
+            if isinstance(node, OperationNode):
+                if node.op_type == OperationType.NOT:
+                    y = compute_cnf(node.children[0])
+                    result.cnf.extend([[x, y], [~x, ~y]])
+                elif node.op_type == OperationType.AND:
+                    y = compute_cnf(node.children[0])
+                    z = compute_cnf(node.children[1])
+                    result.cnf.extend([[~x, y], [~x, z]])
+                    result.cnf.append([x, ~y, ~z])
+                elif node.op_type == OperationType.OR:
+                    y = compute_cnf(node.children[0])
+                    z = compute_cnf(node.children[1])
+                    result.cnf.extend([[x, ~y], [x, ~z]])
+                    result.cnf.append([~x, y, z])
+                elif node.op_type == OperationType.XOR:
+                    y = compute_cnf(node.children[0])
+                    z = compute_cnf(node.children[1])
+                    result.cnf.extend([[~x, y, z], [~x, ~y, ~z], [x, ~y, z], [x, y, ~z]])
+                elif node.op_type == OperationType.EQ:
+                    y = compute_cnf(node.children[0])
+                    z = compute_cnf(node.children[1])
+                    result.cnf.extend([[x, y, z], [x, ~y, ~z], [~x, ~y, z], [~x, y, ~z]])
+                else:
+                    raise ValueError('Unknown operation')
+                return x
+            raise ValueError('Unknown node')
+
+        value = compute_cnf(pnf.node)
+        result.cnf.append([value])
+        return result
+
 
 # def clone_pnf(pnf_orig: PNF, replacements: Dict[BitNode, BitNode]):
 #     quantifiers = []
@@ -400,39 +573,6 @@ class PNF:
 #         quantifiers.append((q_type, replacements[q_var]))
 #     formula = rename_formula(pnf_orig.formula, replacements)
 #     return PNF(quantifiers, formula)
-
-
-def node2pnf(node: Node) -> PNF:
-    if isinstance(node, BitNode):
-        return PNF([], node)
-
-    if isinstance(node, ConstantNode):
-        return PNF([], node)
-
-    if isinstance(node, QuantifierNode):
-        child_pnf = node2pnf(node.child)
-        quantifiers = [(node.quantifier, x) for x in node.variables]
-        quantifiers += child_pnf.quantifiers
-        return PNF(quantifiers, child_pnf.node)
-
-    if isinstance(node, OperationNode):
-        if node.op_type == OperationType.NOT:
-            child_pnf = node2pnf(node.children[0])
-            return ~child_pnf
-
-        child1_pnf = node2pnf(node.children[0])
-        child2_pnf = node2pnf(node.children[1])
-        if node.op_type == OperationType.AND:
-            return child1_pnf & child2_pnf
-        if node.op_type == OperationType.OR:
-            return child1_pnf | child2_pnf
-        if node.op_type == OperationType.XOR:
-            return child1_pnf ^ child2_pnf
-        if node.op_type == OperationType.EQ:
-            return child1_pnf == child2_pnf
-        raise ValueError('Unknown operation')
-
-    raise ValueError('Unknown node')
 
 
 class PCNF:
@@ -445,77 +585,23 @@ class PCNF:
         return (' '.join([q.value + str(q_var) for q, q_var in self.quantifiers]) + ' ' +
                 ' ∧ '.join(map(lambda term: '(' + ' ∨ '.join(map(str, term)) + ')', self.cnf)))
 
-
-def pnf2pcnf(pnf: PNF) -> PCNF:
-    negated = False
-    if pnf.quantifiers[-1][0] == QuantifierType.FORALL:
-        pnf = ~pnf
-        negated = True
-    result = PCNF(pnf.quantifiers, [], negated)
-
-    def compute_cnf(node) -> BitNode:
-        if isinstance(node, BitNode):
-            return node
-
-        x = BitNode()
-        result.quantifiers.append((QuantifierType.EXISTS, x))
-
-        if isinstance(node, ConstantNode):
-            result.cnf.append([x] if node.value else [~x])
-            return x
-
-        if isinstance(node, OperationNode):
-            if node.op_type == OperationType.NOT:
-                y = compute_cnf(node.children[0])
-                result.cnf.extend([[x, y], [~x, ~y]])
-            elif node.op_type == OperationType.AND:
-                y = compute_cnf(node.children[0])
-                z = compute_cnf(node.children[1])
-                result.cnf.extend([[~x, y], [~x, z]])
-                result.cnf.append([x, ~y, ~z])
-            elif node.op_type == OperationType.OR:
-                y = compute_cnf(node.children[0])
-                z = compute_cnf(node.children[1])
-                result.cnf.extend([[x, ~y], [x, ~z]])
-                result.cnf.append([~x, y, z])
-            elif node.op_type == OperationType.XOR:
-                y = compute_cnf(node.children[0])
-                z = compute_cnf(node.children[1])
-                result.cnf.extend([[~x, y, z], [~x, ~y, ~z], [x, ~y, z], [x, y, ~z]])
-            elif node.op_type == OperationType.EQ:
-                y = compute_cnf(node.children[0])
-                z = compute_cnf(node.children[1])
-                result.cnf.extend([[x, y, z], [x, ~y, ~z], [~x, ~y, z], [~x, y, ~z]])
-            else:
-                raise ValueError('Unknown operation')
-            return x
-
-        raise ValueError('Unknown node')
-
-    value = compute_cnf(pnf.node)
-    result.cnf.append([value])
-    return result
-
-
-def eval_pcnf(pcnf: PCNF) -> bool:
-    instance_filename = 'instance.qdimacs'
-    caqe_filename = 'caqe/target/release/caqe'
-
-    with open(instance_filename, 'w') as fout:
-        print(f'p cnf {len(pcnf.quantifiers)} {len(pcnf.cnf)}', file=fout)
-        for q_type, q_var in pcnf.quantifiers:
-            ch = 'e' if q_type == QuantifierType.EXISTS else 'a'
-            print(ch, q_var.id, 0, file=fout)
-        for clause in pcnf.cnf:
-            for elem in clause:
-                var_id = -elem.children[0].id if isinstance(elem, OperationNode) else elem.id
-                print(var_id, end=' ', file=fout)
-            print(0, file=fout)
-
-    cmd = [caqe_filename, instance_filename]
-    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    if result.returncode == 10:
-        return True ^ pcnf.negated
-    if result.returncode == 20:
-        return False ^ pcnf.negated
-    raise ValueError(f'Caqe exited with code {result.returncode}')
+    def eval(self):
+        instance_filename = 'instance.qdimacs'
+        caqe_filename = 'caqe/target/release/caqe'
+        with open(instance_filename, 'w') as fout:
+            print(f'p cnf {len(self.quantifiers)} {len(self.cnf)}', file=fout)
+            for q_type, q_var in self.quantifiers:
+                ch = 'e' if q_type == QuantifierType.EXISTS else 'a'
+                print(ch, q_var.id, 0, file=fout)
+            for clause in self.cnf:
+                for elem in clause:
+                    var_id = -elem.children[0].id if isinstance(elem, OperationNode) else elem.id
+                    print(var_id, end=' ', file=fout)
+                print(0, file=fout)
+        cmd = [caqe_filename, instance_filename]
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if result.returncode == 10:
+            return True ^ self.negated
+        if result.returncode == 20:
+            return False ^ self.negated
+        raise ValueError(f'Caqe exited with code {result.returncode}')
