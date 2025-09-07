@@ -1,392 +1,221 @@
 from qsatlib.numbers import *
 
 
-# def test_unary_add():
-#     n = 2
-#     solver = BruteForceSolver()
-#
-#     # Uniqueness
-#     a = UIntUnary(num_bits=n)
-#     b = UIntUnary(num_bits=n)
-#     c = UIntUnary(num_bits=2 * n)
-#     formula = forall(a, b, exist_unique(c, c == a + b))
-#     assert solver.solve(formula)
-#
-#     # Odd numbers
-#     a = UIntUnary(num_bits=n)
-#     b = UIntUnary(num_bits=n)
-#     formula = forall(a, exist(b, a == b + b))
-#     assert not solver.solve(formula)
-#
-#     # a + a == b + b for b = a
-#     a = UIntUnary(num_bits=n)
-#     b = UIntUnary(num_bits=n)
-#     formula = forall(a, exist(b, a + a == b + b))
-#     assert solver.solve(formula)
-#
-#     # Commutativity
-#     a = UIntUnary(num_bits=n)
-#     b = UIntUnary(num_bits=n)
-#     formula = forall(a, b, a + b == b + a)
-#     assert solver.solve(formula)
-#
-#     # Associativity
-#     a = UIntUnary(num_bits=n)
-#     b = UIntUnary(num_bits=n)
-#     c = UIntUnary(num_bits=n)
-#     formula = forall(a, b, c, (a + b) + c == a + (b + c))
-#     assert solver.solve(formula)
+def test_uint_add_unique():
+    a, b, c = UInt(5), UInt(5), UInt(6)
+    assert forall(a, b, exist_unique(c, c == a + b)).eval()
 
 
-# def test_unary_mul():
-#     n = 2
-#     solver = BruteForceSolver()
-#
-#     # Uniqueness
-#     a = UIntUnary(num_bits=n)
-#     b = UIntUnary(num_bits=n)
-#     c = UIntUnary(num_bits=n * n)
-#     formula = forall(a, b, exist_unique(c, c == a * b))
-#     assert solver.solve(formula)
-#
-#     # Non-perfect squares
-#     a = UIntUnary(num_bits=n)
-#     b = UIntUnary(num_bits=n)
-#     formula = forall(a, exist(b, a == b * b))
-#     assert not solver.solve(formula)
-#
-#     # a * a == b * b for b = a
-#     a = UIntUnary(num_bits=n)
-#     b = UIntUnary(num_bits=n)
-#     formula = forall(a, exist(b, a * a == b * b))
-#     assert solver.solve(formula)
-#
-#     # Commutativity
-#     a = UIntUnary(num_bits=n)
-#     b = UIntUnary(num_bits=n)
-#     formula = forall(a, b, a * b == b * a)
-#     assert solver.solve(formula)
-#
-#     # Associativity
-#     a = UIntUnary(num_bits=n)
-#     b = UIntUnary(num_bits=n)
-#     c = UIntUnary(num_bits=n)
-#     formula = forall(a, b, c, (a * b) * c == a * (b * c))
-#     assert solver.solve(formula)
-#
-#
-# def test_unary_order():
-#     n = 3
-#     solver = BruteForceSolver()
-#
-#     # Transitivity of <=
-#     a = UIntUnary(num_bits=n)
-#     b = UIntUnary(num_bits=n)
-#     c = UIntUnary(num_bits=n)
-#     formula = forall(a, b, c, implies((a <= b) & (b <= c), a <= c))
-#     assert solver.solve(formula)
-#
-#     # Transitivity of <
-#     a = UIntUnary(num_bits=n)
-#     b = UIntUnary(num_bits=n)
-#     c = UIntUnary(num_bits=n)
-#     formula = forall(a, b, c, implies((a < b) & (b < c), a < c))
-#     assert solver.solve(formula)
-#
-#     # Transitivity of < and <=
-#     a = UIntUnary(num_bits=n)
-#     b = UIntUnary(num_bits=n)
-#     c = UIntUnary(num_bits=n)
-#     formula = forall(a, b, c, implies((a < b) & (b <= c), a < c))
-#     assert solver.solve(formula)
-#
-#     # (a <= b) & (b <= c) !=> (a < c)
-#     a = UIntUnary(num_bits=n)
-#     b = UIntUnary(num_bits=n)
-#     c = UIntUnary(num_bits=n)
-#     formula = forall(a, b, c, implies((a <= b) & (b <= c), a < c))
-#     assert not solver.solve(formula)
-#
-#     # Transitivity of >=
-#     a = UIntUnary(num_bits=n)
-#     b = UIntUnary(num_bits=n)
-#     c = UIntUnary(num_bits=n)
-#     formula = forall(a, b, c, implies((a >= b) & (b >= c), a >= c))
-#     assert solver.solve(formula)
-#
-#     # Transitivity of >
-#     a = UIntUnary(num_bits=n)
-#     b = UIntUnary(num_bits=n)
-#     c = UIntUnary(num_bits=n)
-#     formula = forall(a, b, c, implies((a > b) & (b > c), a > c))
-#     assert solver.solve(formula)
-#
-#     # Transitivity of > and >=
-#     a = UIntUnary(num_bits=n)
-#     b = UIntUnary(num_bits=n)
-#     c = UIntUnary(num_bits=n)
-#     formula = forall(a, b, c, implies((a > b) & (b >= c), a > c))
-#     assert solver.solve(formula)
-#
-#     # (a >= b) & (b >= c) !=> (a > c)
-#     a = UIntUnary(num_bits=n)
-#     b = UIntUnary(num_bits=n)
-#     c = UIntUnary(num_bits=n)
-#     formula = forall(a, b, c, implies((a >= b) & (b >= c), a > c))
-#     assert not solver.solve(formula)
-#
-#     # Linearity of <=
-#     a = UIntUnary(num_bits=n)
-#     b = UIntUnary(num_bits=n)
-#     formula = forall(a, b, (a <= b) | (a >= b))
-#     assert solver.solve(formula)
-#
-#     # Non-linearity of <
-#     a = UIntUnary(num_bits=n)
-#     b = UIntUnary(num_bits=n)
-#     formula = forall(a, b, (a < b) | (a > b))
-#     assert not solver.solve(formula)
-#
-#     # Linearity of < (for !=)
-#     a = UIntUnary(num_bits=n)
-#     b = UIntUnary(num_bits=n)
-#     formula = forall(a, b, (a < b) | (a > b) | (a == b))
-#     assert solver.solve(formula)
-#
-#     # (a <= b) <=> (b >= a)
-#     a = UIntUnary(num_bits=n)
-#     b = UIntUnary(num_bits=n)
-#     formula = forall(a, b, (a <= b) == (b >= a))
-#     assert solver.solve(formula)
-#
-#     # (a <= b) & (b <= a) => (a == b)
-#     a = UIntUnary(num_bits=n)
-#     b = UIntUnary(num_bits=n)
-#     formula = forall(a, b, implies((a <= b) & (b <= a), a == b))
-#     assert solver.solve(formula)
-#
-#     # (a <= c) & (b <= c) !=> (a <= b)
-#     a = UIntUnary(num_bits=n)
-#     b = UIntUnary(num_bits=n)
-#     c = UIntUnary(num_bits=n)
-#     formula = forall(a, b, c, implies((a <= c) & (b <= c), a <= b))
-#     assert not solver.solve(formula)
-#
-#     # Minimum
-#     a = UIntUnary(num_bits=n)
-#     b = UIntUnary(num_bits=n)
-#     formula = exist(a, forall(b, b >= a))
-#     assert solver.solve(formula)
-#
-#
-# def test_unary_dist():
-#     n = 2
-#     solver = BruteForceSolver()
-#
-#     # (a + b) * c == a * c + b * c
-#     a = UIntUnary(num_bits=n)
-#     b = UIntUnary(num_bits=n)
-#     c = UIntUnary(num_bits=n)
-#     formula = forall(a, b, c, (a + b) * c == a * c + b * c)
-#     assert solver.solve(formula)
-#
-#     # (a >= c) & (b >= d) => a + b >= c + d
-#     a = UIntUnary(num_bits=n)
-#     b = UIntUnary(num_bits=n)
-#     c = UIntUnary(num_bits=n)
-#     d = UIntUnary(num_bits=n)
-#     formula = forall(a, b, c, d, implies((a >= c) & (b >= d), a + b >= c + d))
-#     assert solver.solve(formula)
-#
-#     # (a >= c) & (b >= d) => a * b >= c * d
-#     a = UIntUnary(num_bits=n)
-#     b = UIntUnary(num_bits=n)
-#     c = UIntUnary(num_bits=n)
-#     d = UIntUnary(num_bits=n)
-#     formula = forall(a, b, c, d, implies((a >= c) & (b >= d), a * b >= c * d))
-#     assert solver.solve(formula)
+def test_uint_add_overflow():
+    a, b, c = UInt(5), UInt(5), UInt(5)
+    assert not forall(a, b, exist(c, c == a + b)).eval()
 
 
-def test_uint_add():
-    n = 5
-    a, b, c = UInt(n), UInt(n), UInt(n + 1)
-
-    # Uniqueness
-    formula = forall(a, b, exist_unique(c, c == a + b))
-    assert formula.eval()
-
-    # Odd numbers
-    formula = forall(a, exist(b, a == b + b))
-    assert not formula.eval()
-
-    # a + a == b + b for b = a
-    formula = forall(a, exist(b, a + a == b + b))
-    assert formula.eval()
-
-    # Commutativity
-    formula = forall(a, b, a + b == b + a)
-    assert formula.eval()
-
-    # Associativity
-    formula = forall(a, b, c, (a + b) + c == a + (b + c))
-    assert formula.eval()
+def test_uint_add_inplace():
+    a, b = UInt(5), UInt(5)
+    c = a
+    c += b
+    assert exist(a, b, (a > 0) & (b > 0) & (c == 0)).eval()
 
 
-def test_uint_mul():
-    n = 3
-    a, b, c = UInt(n), UInt(n), UInt(2 * n)
-
-    # Uniqueness
-    formula = forall(a, b, exist_unique(c, c == a * b))
-    assert formula.eval()
-
-    # Non-perfect squares
-    formula = forall(a, exist(b, a == b * b))
-    assert not formula.eval()
-
-    # a * a == b * b for b = a
-    formula = forall(a, exist(b, a * a == b * b))
-    assert formula.eval()
-
-    # Commutativity
-    formula = forall(a, b, a * b == b * a)
-    assert formula.eval()
-
-    # Associativity
-    formula = forall(a, b, c, (a * b) * c == a * (b * c))
-    assert formula.eval()
+def test_uint_add_zero():
+    a = UInt(5)
+    assert forall(a, a + 0 == a).eval()
 
 
-def test_uint_order():
-    n = 5
-    a, b, c = UInt(n), UInt(n), UInt(n)
-
-    # Transitivity of <=
-    formula = forall(a, b, c, ((a <= b) & (b <= c)).implies(a <= c))
-    assert formula.eval()
-
-    # Transitivity of <
-    formula = forall(a, b, c, ((a < b) & (b < c)).implies(a < c))
-    assert formula.eval()
-
-    # Transitivity of < and <=
-    formula = forall(a, b, c, ((a < b) & (b <= c)).implies(a < c))
-    assert formula.eval()
-
-    # (a <= b) & (b <= c) !=> (a < c)
-    formula = forall(a, b, c, ((a <= b) & (b <= c)).implies(a < c))
-    assert not formula.eval()
-
-    # Transitivity of >=
-    formula = forall(a, b, c, ((a >= b) & (b >= c)).implies(a >= c))
-    assert formula.eval()
-
-    # Transitivity of >
-    formula = forall(a, b, c, ((a > b) & (b > c)).implies(a > c))
-    assert formula.eval()
-
-    # Transitivity of > and >=
-    formula = forall(a, b, c, ((a > b) & (b >= c)).implies(a > c))
-    assert formula.eval()
-
-    # (a >= b) & (b >= c) !=> (a > c)
-    formula = forall(a, b, c, ((a >= b) & (b >= c)).implies(a > c))
-    assert not formula.eval()
-
-    # Linearity of <=
-    formula = forall(a, b, (a <= b) | (a >= b))
-    assert formula.eval()
-
-    # Non-linearity of <
-    formula = forall(a, b, (a < b) | (a > b))
-    assert not formula.eval()
-
-    # Linearity of < for unequal
-    formula = forall(a, b, (a < b) | (a > b) | (a == b))
-    assert formula.eval()
-
-    # (a <= b) <=> (b >= a)
-    formula = forall(a, b, (a <= b) == (b >= a))
-    assert formula.eval()
-
-    # (a <= b) & (b <= a) => (a == b)
-    formula = forall(a, b, ((a <= b) & (b <= a)).implies(a == b))
-    assert formula.eval()
-
-    # (a <= c) & (b <= c) !=> (a <= b)
-    formula = forall(a, b, c, ((a <= c) & (b <= c)).implies(a <= b))
-    assert not formula.eval()
-
-    # Minimum
-    formula = exist(a, forall(b, b >= a))
-    assert formula.eval()
+def test_uint_add_commutativity():
+    a, b = UInt(5), UInt(5)
+    assert forall(a, b, a + b == b + a).eval()
 
 
-def test_uint_dist():
-    n = 4
-    a, b, c, d = UInt(n), UInt(n), UInt(n), UInt(n)
-
-    # (a + b) * c == a * c + b * c
-    formula = forall(a, b, c, (a + b) * c == a * c + b * c)
-    assert formula.eval()
-
-    # (a >= c) & (b >= d) => a + b >= c + d
-    formula = forall(a, b, c, d, ((a >= c) & (b >= d)).implies(a + b >= c + d))
-    assert formula.eval()
-
-    # (a >= c) & (b >= d) => a * b >= c * d
-    formula = forall(a, b, c, d, ((a >= c) & (b >= d)).implies(a * b >= c * d))
-    assert formula.eval()
+def test_uint_add_associativity():
+    a, b, c = UInt(5), UInt(5), UInt(5)
+    assert forall(a, b, c, (a + b) + c == a + (b + c)).eval()
 
 
-def test_uint_bit():
-    n = 5
-    a, b, c = UInt(n), UInt(n), UInt(n)
+def test_uint_add_misc():
+    a, b, c = UInt(5), UInt(5), UInt(5)
+    assert forall(a, b, (a < b) | exist_unique(c, a == b + c)).eval()
 
-    # Uniqueness of &
-    formula = forall(a, b, exist_unique(c, c == (a & b)))
-    assert formula.eval()
 
-    # Commutativity of &
-    formula = forall(a, b, (a & b) == (b & a))
-    assert formula.eval()
+def test_uint_add_parity():
+    a, b = UInt(5), UInt(5)
+    assert forall(a, exist_unique(b, (a == b + b) | (a == b + b + 1))).eval()
 
-    # Associativity of &
-    formula = forall(a, b, c, ((a & b) & c) == (a & (b & c)))
-    assert formula.eval()
 
-    # Monotonicity of &
-    formula = forall(a, b, ((a & b) <= a) & ((a & b) <= b))
-    assert formula.eval()
+def test_uint_mul_unique():
+    a, b, c = UInt(3), UInt(3), UInt(6)
+    assert forall(a, b, exist_unique(c, c == a * b)).eval()
 
-    # Uniqueness of |
-    formula = forall(a, b, exist_unique(c, c == (a | b)))
-    assert formula.eval()
 
-    # Commutativity of |
-    formula = forall(a, b, (a | b) == (b | a))
-    assert formula.eval()
+def test_uint_mul_overflow():
+    a, b, c = UInt(3), UInt(3), UInt(5)
+    assert not forall(a, b, exist(c, c == a * b)).eval()
 
-    # Associativity of |
-    formula = forall(a, b, c, ((a | b) | c) == (a | (b | c)))
-    assert formula.eval()
 
-    # Monotonicity of |
-    formula = forall(a, b, (a <= (a | b)) & (b <= (a | b)))
-    assert formula.eval()
+def test_uint_mul_inplace():
+    a, b = UInt(5), UInt(5)
+    c = a
+    c *= b
+    assert exist(a, b, (a > 0) & (b > 0) & (c == 0)).eval()
 
-    # ~(a & b) == (~a | ~b)
-    formula = forall(a, b, ~(a & b) == (~a | ~b))
-    assert formula.eval()
 
-    # ~(a | b) == (~a & ~b)
-    formula = forall(a, b, ~(a | b) == (~a & ~b))
-    assert formula.eval()
+def test_uint_mul_zero():
+    a = UInt(5)
+    assert forall(a, a * 0 == 0).eval()
 
-    # a & (b | c) == (a & b) | (a & c)
-    formula = forall(a, b, c, a & (b | c) == (a & b) | (a & c))
-    assert formula.eval()
 
-    # a | (b & c) == (a | b) & (a | c)
-    formula = forall(a, b, c, a | (b & c) == (a | b) & (a | c))
-    assert formula.eval()
+def test_uint_mul_one():
+    a = UInt(5)
+    assert forall(a, a * 1 == a).eval()
+
+
+def test_uint_mul_commutativity():
+    a, b = UInt(5), UInt(5)
+    assert forall(a, b, a * b == b * a).eval()
+
+
+def test_uint_mul_associativity():
+    a, b, c = UInt(3), UInt(3), UInt(3)
+    assert forall(a, b, c, (a * b) * c == a * (b * c)).eval()
+
+
+def test_uint_factorise():
+    a, b = UInt(5), UInt(5)
+    assert exist(a, b, (a > 1) & (b > 1) & (a * b == 899)).eval()
+
+
+def test_uint_remainder():
+    a, b, c = UInt(5), UInt(5), UInt(5)
+    assert forall(a, b, (b == 0) | exist_unique(c, (b * c <= a) & (b * (c + 1) > a))).eval()
+
+
+def test_uint_sum_squares():
+    a, b = UInt(4), UInt(4)
+    assert exist(a, b, (a < b) & (a * a + b * b == 65)).eval()
+    assert not exist_unique(a, b, (a < b) & (a * a + b * b == 65)).eval()
+
+
+def test_uint_add_mul_dist():
+    a, b, c = UInt(4), UInt(4), UInt(4)
+    assert forall(a, b, c, (a + b) * c == a * c + b * c).eval()
+
+
+def test_uint_leq_transitivity():
+    a, b, c = UInt(5), UInt(5), UInt(5)
+    assert forall(a, b, c, ((a <= b) & (b <= c)).implies(a <= c)).eval()
+
+
+def test_uint_lt_transitivity():
+    a, b, c = UInt(5), UInt(5), UInt(5)
+    assert forall(a, b, c, ((a < b) & (b < c)).implies(a < c)).eval()
+
+
+def test_uint_geq_transitivity():
+    a, b, c = UInt(5), UInt(5), UInt(5)
+    assert forall(a, b, c, ((a >= b) & (b >= c)).implies(a >= c)).eval()
+
+
+def test_uint_gt_transitivity():
+    a, b, c = UInt(5), UInt(5), UInt(5)
+    assert forall(a, b, c, ((a > b) & (b > c)).implies(a > c)).eval()
+
+
+def test_uint_non_transitivity():
+    a, b, c = UInt(5), UInt(5), UInt(5)
+    assert not forall(a, b, c, ((a <= b) & (b <= c)).implies(a < c)).eval()
+
+
+def test_uint_leq_geq_linearity():
+    a, b = UInt(5), UInt(5)
+    assert forall(a, b, (a <= b) | (a >= b)).eval()
+
+
+def test_uint_lt_gt_linearity():
+    a, b = UInt(5), UInt(5)
+    assert forall(a, b, (a < b) | (a > b) | (a == b)).eval()
+
+
+def test_uint_minimum():
+    a, b, c = UInt(5), UInt(5), UInt(5)
+    assert forall(a, b, exist_unique(c, (c <= a) & (c <= b) & ((c == a) | (c == b)))).eval()
+
+
+def test_uint_ge_add_dist():
+    a, b, c, d = UInt(4), UInt(4), UInt(4), UInt(4)
+    assert forall(a, b, c, d, ((a >= c) & (b >= d)).implies(a + b >= c + d)).eval()
+
+
+def test_uint_ge_mul_dist():
+    a, b, c, d = UInt(4), UInt(4), UInt(4), UInt(4)
+    assert forall(a, b, c, d, ((a >= c) & (b >= d)).implies(a * b >= c * d)).eval()
+
+
+def test_uint_and_unique():
+    a, b, c = UInt(5), UInt(5), UInt(5)
+    assert forall(a, b, exist_unique(c, c == a & b)).eval()
+
+
+def test_uint_and_zero():
+    a = UInt(5)
+    assert forall(a, a & 0 == 0).eval()
+
+
+def test_uint_and_commutativity():
+    a, b = UInt(5), UInt(5)
+    assert forall(a, b, a & b == b & a).eval()
+
+
+def test_uint_and_associativity():
+    a, b, c = UInt(5), UInt(5), UInt(5)
+    assert forall(a, b, c, (a & b) & c == a & (b & c)).eval()
+
+
+def test_uint_and_monotonicity():
+    a, b = UInt(5), UInt(5)
+    assert forall(a, b, ((a & b) <= a) & ((a & b) <= b)).eval()
+
+
+def test_uint_or_unique():
+    a, b, c = UInt(5), UInt(5), UInt(5)
+    assert forall(a, b, exist_unique(c, c == a | b)).eval()
+
+
+def test_uint_or_zero():
+    a = UInt(5)
+    assert forall(a, a | 0 == a).eval()
+
+
+def test_uint_or_commutativity():
+    a, b = UInt(5), UInt(5)
+    assert forall(a, b, a | b == b | a).eval()
+
+
+def test_uint_or_associativity():
+    a, b, c = UInt(5), UInt(5), UInt(5)
+    assert forall(a, b, c, (a | b) | c == a | (b | c)).eval()
+
+
+def test_uint_or_monotonicity():
+    a, b = UInt(5), UInt(5)
+    assert forall(a, b, ((a | b) >= a) & ((a | b) >= b)).eval()
+
+
+def test_uint_not_and():
+    a, b = UInt(5), UInt(5)
+    assert forall(a, b, ~(a & b) == ~a | ~b).eval()
+
+
+def test_uint_not_or():
+    a, b = UInt(5), UInt(5)
+    assert forall(a, b, ~(a | b) == ~a & ~b).eval()
+
+
+def test_uint_and_or_dist():
+    a, b, c = UInt(5), UInt(5), UInt(5)
+    assert forall(a, b, c, (a & b) | c == (a | c) & (b | c)).eval()
+
+
+def test_uint_or_and_dist():
+    a, b, c = UInt(5), UInt(5), UInt(5)
+    assert forall(a, b, c, (a | b) & c == (a & c) | (b & c)).eval()
