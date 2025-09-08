@@ -201,7 +201,7 @@ class Node:
         raise ValueError('Unknown node')
 
     def eval(self):
-        return self.pnf().pcnf().eval()
+        return self.pnf().pcnf().check().eval()
 
 
 _VAR_CNT = 0
@@ -585,6 +585,16 @@ class PCNF:
     def __str__(self):
         return (' '.join([q.value + str(q_var) for q, q_var in self.quantifiers]) + ' ' +
                 ' ∧ '.join(map(lambda term: '(' + ' ∨ '.join(map(str, term)) + ')', self.cnf)))
+
+    def check(self):
+        q_var_ids = {q_var_id for _, q_var_id in self.quantifiers}
+        if len(q_var_ids) < len(self.quantifiers):
+            raise ValueError('Duplicated quantifiers')
+        for clause in self.cnf:
+            for var_id in clause:
+                if var_id not in q_var_ids and -var_id not in q_var_ids:
+                    raise ValueError(f'Undefined variable {var_id} in clause {clause}')
+        return self
 
     def eval(self):
         instance_filename = 'instance.qdimacs'
