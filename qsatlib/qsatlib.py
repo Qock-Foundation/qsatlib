@@ -201,7 +201,7 @@ class Node:
         raise ValueError('Unknown node')
 
     def eval(self):
-        return self.pnf().simplify().pcnf().eval()
+        return self.pnf().pcnf().eval()
 
 
 _VAR_CNT = 0
@@ -518,43 +518,44 @@ class PNF:
 
     def pcnf(self):
         if self.quantifiers and self.quantifiers[-1][0] == QuantifierType.FORALL:
-            pnf = ~self
+            pnf = (~self).simplify()
             negated = True
         else:
-            pnf = self
+            pnf = self.simplify()
             negated = False
-        result = PCNF(pnf.quantifiers, [], negated)
+        quantifiers = [(q_type, q_var.id) for q_type, q_var in pnf.quantifiers]
+        result = PCNF(quantifiers, [], negated)
 
-        def compute_cnf(node) -> BitNode:
+        def compute_cnf(node) -> int:
             if isinstance(node, BitNode):
-                return node
-            x = BitNode()
+                return node.id
+            if isinstance(node, OperationNode) and node.op_type == OperationType.NOT:
+                assert isinstance(node.children[0], BitNode)
+                return -node.children[0].id
+            x = BitNode().id
             result.quantifiers.append((QuantifierType.EXISTS, x))
             if isinstance(node, ConstantNode):
-                result.cnf.append([x] if node.value else [~x])
+                result.cnf.append([x] if node.value else [-x])
                 return x
             if isinstance(node, OperationNode):
-                if node.op_type == OperationType.NOT:
-                    y = compute_cnf(node.children[0])
-                    result.cnf.extend([[x, y], [~x, ~y]])
-                elif node.op_type == OperationType.AND:
+                if node.op_type == OperationType.AND:
                     y = compute_cnf(node.children[0])
                     z = compute_cnf(node.children[1])
-                    result.cnf.extend([[~x, y], [~x, z]])
-                    result.cnf.append([x, ~y, ~z])
+                    result.cnf.extend([[-x, y], [-x, z]])
+                    result.cnf.append([x, -y, -z])
                 elif node.op_type == OperationType.OR:
                     y = compute_cnf(node.children[0])
                     z = compute_cnf(node.children[1])
-                    result.cnf.extend([[x, ~y], [x, ~z]])
-                    result.cnf.append([~x, y, z])
+                    result.cnf.extend([[x, -y], [x, -z]])
+                    result.cnf.append([-x, y, z])
                 elif node.op_type == OperationType.XOR:
                     y = compute_cnf(node.children[0])
                     z = compute_cnf(node.children[1])
-                    result.cnf.extend([[~x, y, z], [~x, ~y, ~z], [x, ~y, z], [x, y, ~z]])
+                    result.cnf.extend([[-x, y, z], [-x, -y, -z], [x, -y, z], [x, y, -z]])
                 elif node.op_type == OperationType.EQ:
                     y = compute_cnf(node.children[0])
                     z = compute_cnf(node.children[1])
-                    result.cnf.extend([[x, y, z], [x, ~y, ~z], [~x, ~y, z], [~x, y, ~z]])
+                    result.cnf.extend([[x, y, z], [x, -y, -z], [-x, -y, z], [-x, y, -z]])
                 else:
                     raise ValueError('Unknown operation')
                 return x
@@ -590,12 +591,11 @@ class PCNF:
         caqe_filename = 'caqe/target/release/caqe'
         with open(instance_filename, 'w') as fout:
             print(f'p cnf {len(self.quantifiers)} {len(self.cnf)}', file=fout)
-            for q_type, q_var in self.quantifiers:
+            for q_type, q_var_id in self.quantifiers:
                 ch = 'e' if q_type == QuantifierType.EXISTS else 'a'
-                print(ch, q_var.id, 0, file=fout)
+                print(ch, q_var_id, 0, file=fout)
             for clause in self.cnf:
-                for elem in clause:
-                    var_id = -elem.children[0].id if isinstance(elem, OperationNode) else elem.id
+                for var_id in clause:
                     print(var_id, end=' ', file=fout)
                 print(0, file=fout)
         cmd = [caqe_filename, instance_filename]

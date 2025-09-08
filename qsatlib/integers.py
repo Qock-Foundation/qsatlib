@@ -93,6 +93,37 @@ class UInt(Variable):
 
         return inner
 
+    @operation
+    def __invert__(self):
+        n = self.size()
+        result = UInt(n)
+        result.constraint &= Node.conj(*[result.get(i) == ~self.get(i) for i in range(n)])
+        return result
+
+    @convert_scalars
+    @operation
+    def __and__(self, other):
+        n = min(self.size(), other.size())
+        result = UInt(n)
+        result.constraint &= Node.conj(*[result.get(i) == self.get(i) & other.get(i) for i in range(n)])
+        return result
+
+    @convert_scalars
+    @operation
+    def __or__(self, other):
+        n = max(self.size(), other.size())
+        result = UInt(n)
+        result.constraint &= Node.conj(*[result.get(i) == self.get_or(i) | other.get_or(i) for i in range(n)])
+        return result
+
+    @convert_scalars
+    @operation
+    def __xor__(self, other):
+        n = max(self.size(), other.size())
+        result = UInt(n)
+        result.constraint &= Node.conj(*[result.get(i) == self.get_or(i) ^ other.get_or(i) for i in range(n)])
+        return result
+
     @convert_scalars
     @operation
     def __eq__(self, other):
@@ -210,27 +241,4 @@ class UInt(Variable):
     def __imul__(self, other):
         result = UInt(self.size())
         self._prod_is(self, other, result)
-        return result
-
-    @convert_scalars
-    @operation
-    def __and__(self, other):
-        n = min(self.size(), other.size())
-        result = UInt(n)
-        result.constraint &= Node.conj(*[result.get(i) == (self.get(i) & other.get(i)) for i in range(n)])
-        return result
-
-    @convert_scalars
-    @operation
-    def __or__(self, other):
-        n = max(self.size(), other.size())
-        result = UInt(n)
-        result.constraint &= Node.conj(*[result.get(i) == (self.get_or(i) | other.get_or(i)) for i in range(n)])
-        return result
-
-    @operation
-    def __invert__(self):
-        n = self.size()
-        result = UInt(n)
-        result.constraint &= Node.conj(*[result.get(i) == ~self.get(i) for i in range(n)])
         return result

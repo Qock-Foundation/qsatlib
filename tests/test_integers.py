@@ -1,4 +1,4 @@
-from qsatlib.numbers import *
+from qsatlib.integers import *
 
 
 def test_uint_add_unique():
@@ -201,6 +201,21 @@ def test_uint_or_monotonicity():
     assert forall(a, b, ((a | b) >= a) & ((a | b) >= b)).eval()
 
 
+def test_uint_xor_zero():
+    a = UInt(5)
+    assert forall(a, a ^ 0 == a).eval()
+
+
+def test_uint_xor_commutativity():
+    a, b = UInt(5), UInt(5)
+    assert forall(a, b, a ^ b == b ^ a).eval()
+
+
+def test_uint_xor_associativity():
+    a, b, c = UInt(5), UInt(5), UInt(5)
+    assert forall(a, b, c, (a ^ b) ^ c == a ^ (b ^ c)).eval()
+
+
 def test_uint_not_and():
     a, b = UInt(5), UInt(5)
     assert forall(a, b, ~(a & b) == ~a | ~b).eval()
@@ -219,3 +234,8 @@ def test_uint_and_or_dist():
 def test_uint_or_and_dist():
     a, b, c = UInt(5), UInt(5), UInt(5)
     assert forall(a, b, c, (a | b) & c == (a & c) | (b & c)).eval()
+
+
+def test_uint_xor_and_dist():
+    a, b, c = UInt(5), UInt(5), UInt(5)
+    assert forall(a, b, c, (a ^ b) & c == (a & c) ^ (b & c)).eval()
