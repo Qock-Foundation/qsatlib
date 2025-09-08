@@ -74,14 +74,14 @@ class UInt(Variable):
     def one(width):
         return UInt.value(1, width=width)
 
+    @operation
     def resize(self, width):
-        result = copy(self)
+        result = deepcopy(self)
         if width <= self.size():
             result.var_nodes = self.var_nodes[:width]
         else:
             new_nodes = [BitNode() for _ in range(width - self.size())]
             result.var_nodes += new_nodes
-            result.aux_nodes |= set(new_nodes)
             result.constraint &= Node.conj(*[~node for node in new_nodes])
         return result
 
@@ -174,21 +174,24 @@ class UInt(Variable):
     def _sum_is(a, b, c):
         n, m, k = a.size(), b.size(), c.size()
         carry = Variable([None] * min(k, max(n, m) + 1))
-        c.aux_nodes |= set(carry.var_nodes)
-        c.constraint &= ~carry.get(0)
+        aux_nodes = set(carry.var_nodes)
+        constraint = ~carry.get(0)
         for i in range(k):
             if i < carry.size():
-                c.constraint &= UInt._bit_sum_is(
+                constraint &= UInt._bit_sum_is(
                     a.get_or(i), b.get_or(i), carry.get(i), c.get(i),
                     carry.get(i + 1) if i < carry.size() - 1 else None)
             else:
-                c.constraint &= ~c.get(i)
+                constraint &= ~c.get(i)
+        return aux_nodes, constraint
 
     @convert_scalars
     @operation
     def __add__(self, other):
         result = UInt(max(self.size(), other.size()) + 1)
-        self._sum_is(self, other, result)
+        aux_nodes, constraint = self._sum_is(self, other, result)
+        result.aux_nodes |= aux_nodes
+        result.constraint &= constraint
         return result
 
     @convert_scalars
@@ -200,35 +203,67 @@ class UInt(Variable):
     @operation
     def __iadd__(self, other):
         result = UInt(self.size())
-        self._sum_is(self, other, result)
+        aux_nodes, constraint = self._sum_is(self, other, result)
+        result.aux_nodes |= aux_nodes
+        result.constraint &= constraint
+        return result
+
+    @convert_scalars
+    @operation
+    def __sub__(self, other):
+        result = UInt(self.size())
+        cmp = (other + result == self)
+        result.aux_nodes |= cmp.aux_nodes
+        result.constraint &= cmp.constraint & cmp.node
+        return result
+
+    @convert_scalars
+    @operation
+    def __rsub__(self, other):
+        return other - self
+
+    @convert_scalars
+    @operation
+    def __isub__(self, other):
+        result = UInt(self.size())
+        cur = result
+        cur += other
+        cmp = (cur == self)
+        result.aux_nodes |= cmp.aux_nodes
+        result.constraint &= cmp.constraint & cmp.node
         return result
 
     @staticmethod
     def _prod_is(a, b, c):
         n, m, k = a.size(), b.size(), c.size()
+        aux_nodes = set()
+        constraint = ConstantNode(True)
         rs = []
         for i in range(min(m, k)):
             r = UInt(min(k, n + i))
-            c.aux_nodes |= set(r.var_nodes)
+            aux_nodes |= set(r.var_nodes)
             for j in range(i):
-                c.constraint &= ~r.get(j)
+                constraint &= ~r.get(j)
             for j in range(i, r.size()):
-                c.constraint &= r.get(j) == (a.get(j - i) & b.get(i))
+                constraint &= r.get(j) == (a.get(j - i) & b.get(i))
             rs.append(r)
         s = rs[0]
         for r in rs[1:]:
             s = s + r
             if s.size() > k:
                 s = s.resize(k)
-        c.aux_nodes |= s.aux_nodes
-        c.constraint &= s.constraint
-        c.constraint &= Node.conj(*[c.get(i) == s.get_or(i) for i in range(k)])
+        aux_nodes |= s.aux_nodes
+        constraint &= s.constraint
+        constraint &= Node.conj(*[c.get(i) == s.get_or(i) for i in range(k)])
+        return aux_nodes, constraint
 
     @convert_scalars
     @operation
     def __mul__(self, other):
         result = UInt(self.size() + other.size())
-        self._prod_is(self, other, result)
+        aux_nodes, constraint = self._prod_is(self, other, result)
+        result.aux_nodes |= aux_nodes
+        result.constraint &= constraint
         return result
 
     @convert_scalars
@@ -240,5 +275,29 @@ class UInt(Variable):
     @operation
     def __imul__(self, other):
         result = UInt(self.size())
-        self._prod_is(self, other, result)
+        aux_nodes, constraint = self._prod_is(self, other, result)
+        result.aux_nodes |= aux_nodes
+        result.constraint &= constraint
         return result
+
+    @convert_scalars
+    @operation
+    def __divmod__(self, other):
+        div = UInt(self.size())
+        mod = UInt(other.size())
+        cmp = (other * div + mod == self) & (mod < other)
+        div.aux_nodes |= cmp.aux_nodes
+        div.constraint &= cmp.constraint & cmp.node
+        mod.aux_nodes |= cmp.aux_nodes
+        mod.constraint &= cmp.constraint & cmp.node
+        return div, mod
+
+    @convert_scalars
+    @operation
+    def __floordiv__(self, other):
+        return divmod(self, other)[0]
+
+    @convert_scalars
+    @operation
+    def __mod__(self, other):
+        return divmod(self, other)[1]

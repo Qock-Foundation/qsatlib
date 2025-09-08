@@ -1,6 +1,6 @@
 import subprocess
 import sys
-from copy import copy
+from copy import deepcopy
 from enum import Enum
 from typing import Iterable, Optional, Dict
 
@@ -69,11 +69,11 @@ class Node:
         if isinstance(self, ConstantNode):
             return self
         if isinstance(self, QuantifierNode):
-            res = copy(self)
+            res = deepcopy(self)
             res.child = self.child.rename(replacements)
             return res
         if isinstance(self, OperationNode):
-            res = copy(self)
+            res = deepcopy(self)
             res.children = [child.rename(replacements) for child in self.children]
             return res
         raise ValueError('Unknown node')
@@ -281,11 +281,17 @@ def operation(func):
                 continue
             aux_nodes |= var.aux_nodes
             constraint &= var.constraint
-            var.aux_nodes.clear()
-            var.constraint = ConstantNode(True)
-        result: Variable = func(*args, **kwargs)
-        result.aux_nodes |= aux_nodes | set(result.var_nodes)
-        result.constraint &= constraint
+        result = func(*args, **kwargs)
+        if isinstance(result, Variable):
+            aux_nodes |= set(result.var_nodes)
+            result.aux_nodes |= aux_nodes
+            result.constraint &= constraint
+        elif isinstance(result, tuple):
+            for elem in result:
+                aux_nodes |= set(elem.var_nodes)
+            for elem in result:
+                elem.aux_nodes |= aux_nodes
+                elem.constraint &= constraint
         return result
 
     return inner
@@ -426,13 +432,14 @@ def exist_unique(*vars_cond):
     var_nodes = sum([variable.var_nodes for variable in variables], [])
     new_nodes = [BitNode() for _ in range(len(var_nodes))]
     aux_nodes = list(condition.aux_nodes)
-    new_constraint = Node.conj(*[variable.constraint for variable in variables]).rename(
-        {var_node: new_node for var_node, new_node in zip(var_nodes, new_nodes)})
-    constraint = Node.conj(*[variable.constraint for variable in variables]) & condition.constraint
+    var_constraint = Node.conj(*[variable.constraint for variable in variables])
+    new_var_constraint = var_constraint.rename({var_node: new_node for var_node, new_node in zip(var_nodes, new_nodes)})
     eq = Node.conj(*[var_node == new_node for var_node, new_node in zip(var_nodes, new_nodes)])
     return Boolean(QuantifierNode(QuantifierType.EXISTS, new_nodes,
                                   QuantifierNode(QuantifierType.FORALL, var_nodes + aux_nodes,
-                                                 new_constraint & constraint.implies(condition.node == eq))),
+                                                 new_var_constraint &
+                                                 (var_constraint & condition.constraint).implies(
+                                                     condition.node == eq))),
                    has_var=False)
 
 

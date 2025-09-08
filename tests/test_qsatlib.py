@@ -139,3 +139,13 @@ def test_forall_exist():
 def test_exist_unique():
     a, b, c = Boolean(), Boolean(), Boolean()
     assert exist_unique(a, exist_unique(b, (a & ~b) | exist(c, c != c))).eval()
+
+
+def test_variable_reuse():
+    a, b = Boolean(), Boolean()
+    c = a | b
+    assert exist_unique(a, b, ~c).eval()
+    c = c & a & b
+    assert exist_unique(a, b, c).eval()
+    c = a ^ b
+    assert not exist_unique(a, b, c).eval()

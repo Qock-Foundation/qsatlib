@@ -43,6 +43,35 @@ def test_uint_add_parity():
     assert forall(a, exist_unique(b, (a == b + b) | (a == b + b + 1))).eval()
 
 
+def test_uint_sub_unique():
+    a, b, c = UInt(5), UInt(5), UInt(5)
+    assert forall(a, b, (a < b) | exist_unique(c, c == a - b)).eval()
+
+
+def test_uint_sub_overflow():
+    a, b, c = UInt(5), UInt(5), UInt(5)
+    assert not forall(a, b, exist(c, c == a - b)).eval()
+
+
+def test_uint_sub_inplace():
+    a, b = UInt(5), UInt(5)
+    c = a
+    c -= b
+    assert exist(a, b, c > a).eval()
+    c += b
+    assert forall(a, b, c == a).eval()
+
+
+def test_uint_sub_add():
+    a, b, c = UInt(5), UInt(5), UInt(5)
+    assert forall(a, b, c, a - (b + c) == a - b - c).eval()
+
+
+def test_uint_sub_zero():
+    a = UInt(5)
+    assert forall(a, a - 0 == a).eval()
+
+
 def test_uint_mul_unique():
     a, b, c = UInt(3), UInt(3), UInt(6)
     assert forall(a, b, exist_unique(c, c == a * b)).eval()
@@ -85,9 +114,29 @@ def test_uint_factorise():
     assert exist(a, b, (a > 1) & (b > 1) & (a * b == 899)).eval()
 
 
-def test_uint_remainder():
-    a, b, c = UInt(5), UInt(5), UInt(5)
-    assert forall(a, b, (b == 0) | exist_unique(c, (b * c <= a) & (b * (c + 1) > a))).eval()
+def test_uint_divmod_unique():
+    a, b, c, d = UInt(4), UInt(4), UInt(4), UInt(4)
+    div, mod = divmod(a, b)
+    assert forall(a, b, (b == 0) | exist_unique(c, d, (c == div) & (d == mod))).eval()
+
+
+def test_uint_divmod_zero():
+    a, b, c, d = UInt(4), UInt(4), UInt(4), UInt(4)
+    div, mod = divmod(a, b)
+    assert not forall(a, b, exist(c, d, (c == div) & (d == mod))).eval()
+
+
+def test_uint_divmod_one():
+    a = UInt(5)
+    div, mod = divmod(a, 1)
+    assert forall(a, (div == a) & (mod == 0)).eval()
+
+
+def test_uint_divmod_correctness():
+    a, b = UInt(5), UInt(5)
+    assert forall(a, b, (b > 0).implies(a // b * b <= a)).eval()
+    assert forall(a, b, (b > 0).implies(a % b < b)).eval()
+    assert forall(a, b, (b > 0).implies(a // b * b + a % b == a)).eval()
 
 
 def test_uint_sum_squares():
@@ -99,6 +148,19 @@ def test_uint_sum_squares():
 def test_uint_add_mul_dist():
     a, b, c = UInt(4), UInt(4), UInt(4)
     assert forall(a, b, c, (a + b) * c == a * c + b * c).eval()
+
+
+def test_uint_add_div_inequality():
+    a, b, c = UInt(4), UInt(4), UInt(4)
+    assert forall(a, b, c, (c > 0).implies((a + b) // c >= a // c + b // c)).eval()
+    assert not forall(a, b, c, (c > 0).implies((a + b) // c == a // c + b // c)).eval()
+    assert forall(a, b, c, (c > 0).implies((a + b) // c <= a // c + b // c + 1)).eval()
+
+
+def test_uint_add_mod_equality():
+    a, b, c = UInt(4), UInt(4), UInt(4)
+    assert not forall(a, b, c, (a + b) % c == a % c + b % c).eval()
+    assert forall(a, b, c, (a + b) % c == (a % c + b % c) % c).eval()
 
 
 def test_uint_leq_transitivity():
