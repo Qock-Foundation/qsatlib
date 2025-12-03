@@ -2,7 +2,8 @@ from qsatlib.integers import *
 import time
 
 p, q = UInt(25), UInt(25)
-n = 368986894403417
+n = 741823
+# n = 368986894403417
 # n = 243948295914941
 formula = exist(p, q, (p > 1) & (q > 1) & (p * q == n))
 

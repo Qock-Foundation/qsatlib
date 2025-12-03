@@ -108,7 +108,7 @@ def test_bool_xor_and_dist():
 
 def test_not_quantifiers():
     a, b = Boolean(), Boolean()
-    assert ~forall(a, b, a | b).eval()
+    assert (~forall(a, b, a | b)).eval()
 
 
 def test_and_quantifiers():
